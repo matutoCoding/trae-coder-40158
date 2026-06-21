@@ -1,0 +1,76 @@
+@use '@/styles/variables.scss' as *;
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-xs;
+  padding: 4rpx 12rpx;
+
+  .text {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    line-height: 1.4;
+  }
+
+  &.sm {
+    padding: 2rpx 8rpx;
+
+    .text {
+      font-size: 20rpx;
+    }
+  }
+
+  &.md {
+    padding: 6rpx 16rpx;
+
+    .text {
+      font-size: $font-size-sm;
+    }
+  }
+
+  &.normal {
+    background-color: rgba(78, 89, 105, 0.1);
+    color: $color-text-secondary;
+  }
+
+  &.vip {
+    background-color: rgba(255, 177, 0, 0.15);
+    color: $color-vip;
+  }
+
+  &.urgent {
+    background-color: rgba(245, 63, 63, 0.15);
+    color: $color-urgent;
+  }
+
+  &.fasting {
+    background-color: rgba(255, 125, 0, 0.15);
+    color: $color-fasting;
+  }
+
+  &.self-pay {
+    background-color: rgba(22, 93, 255, 0.15);
+    color: $color-selfpay;
+  }
+
+  &.package {
+    background-color: rgba(15, 198, 194, 0.15);
+    color: $color-primary;
+  }
+
+  &.calling {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    color: $color-text-white;
+  }
+
+  &.waiting {
+    background-color: rgba(134, 144, 156, 0.15);
+    color: $color-text-tertiary;
+  }
+
+  &.completed {
+    background-color: rgba(0, 180, 42, 0.15);
+    color: $color-success;
+  }
+}

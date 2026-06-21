@@ -1,0 +1,99 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  position: relative;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.valueWrap {
+  display: flex;
+  align-items: baseline;
+}
+
+.value {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+.unit {
+  font-size: $font-size-sm;
+  margin-left: $spacing-xs;
+  color: $color-text-tertiary;
+}
+
+.decoration {
+  position: absolute;
+  top: -30rpx;
+  right: -30rpx;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  opacity: 0.1;
+}
+
+.primary {
+  .value {
+    color: $color-primary;
+  }
+  .decoration {
+    background: $color-primary;
+  }
+}
+
+.success {
+  .value {
+    color: $color-success;
+  }
+  .decoration {
+    background: $color-success;
+  }
+}
+
+.warning {
+  .value {
+    color: $color-warning;
+  }
+  .decoration {
+    background: $color-warning;
+  }
+}
+
+.error {
+  .value {
+    color: $color-error;
+  }
+  .decoration {
+    background: $color-error;
+  }
+}
+
+.vip {
+  .value {
+    color: $color-vip;
+  }
+  .decoration {
+    background: $color-vip;
+  }
+}
