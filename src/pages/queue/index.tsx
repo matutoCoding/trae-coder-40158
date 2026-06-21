@@ -8,6 +8,7 @@ import QueueCard from '@/components/QueueCard';
 import StatusTag from '@/components/StatusTag';
 import { sortQueueByPriority, formatCurrency } from '@/utils';
 import dayjs from 'dayjs';
+import type { QueueItem } from '@/types';
 
 type ViewType = 'rooms' | 'load';
 
@@ -26,12 +27,14 @@ const QueuePage: React.FC = () => {
     getRoomsByExamItem,
     getSkippedByExamItem,
     getItemLoadStats,
+    getAllSkipped,
     callNextForRoom,
     completeExam,
     skipCurrent,
     cancelExam,
     transferRoom,
     recallSkipped,
+    returnSkippedToQueue,
     addToQueue,
     patients
   } = useQueueStore();
@@ -41,6 +44,7 @@ const QueuePage: React.FC = () => {
   const [showActionSheet, setShowActionSheet] = useState<string | null>(null);
   const [showTransferSheet, setShowTransferSheet] = useState<string | null>(null);
   const [showRecallSheet, setShowRecallSheet] = useState<string | null>(null);
+  const [showSkippedActionSheet, setShowSkippedActionSheet] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
@@ -51,11 +55,17 @@ const QueuePage: React.FC = () => {
     queue.filter(item => item.status === 'waiting')
   );
 
+  const skippedList = getAllSkipped();
   const loadStats = getItemLoadStats();
 
   const getElapsedMinutes = (callTime: number | null): number => {
     if (!callTime) return 0;
     return Math.floor((now - callTime) / 60000);
+  };
+
+  const getSkippedMinutes = (skippedAt: number | null | undefined): number => {
+    if (!skippedAt) return 0;
+    return Math.floor((now - skippedAt) / 60000);
   };
 
   const getEstimatedEndTime = (callTime: number | null, duration: number): string => {
@@ -93,7 +103,7 @@ const QueuePage: React.FC = () => {
     if (result.success) {
       Taro.showToast({ title: `${room?.name} 已完成结算`, icon: 'success' });
     } else {
-      Taro.showToast({ title: '结算失败', icon: 'none' });
+      Taro.showToast({ title: '结算失败或已结算', icon: 'none' });
     }
     setShowActionSheet(null);
   };
@@ -141,11 +151,32 @@ const QueuePage: React.FC = () => {
       Taro.showToast({ title: '叫回失败', icon: 'none' });
     }
     setShowRecallSheet(null);
+    setShowSkippedActionSheet(null);
+  };
+
+  const handleReturnToQueue = (queueItemId: string) => {
+    const success = returnSkippedToQueue(queueItemId);
+    if (success) {
+      Taro.showToast({ title: '已退回等待队列', icon: 'success' });
+    }
+    setShowSkippedActionSheet(null);
+  };
+
+  const handleSkippedCallDirect = (item: QueueItem) => {
+    const idleRooms = getRoomsByExamItem(item.examItemId).filter(r => r.status === 'idle');
+    if (idleRooms.length === 1) {
+      handleRecall(item.id, idleRooms[0].id);
+    } else if (idleRooms.length > 1) {
+      setShowRecallSheet(`multi:${item.id}`);
+    } else {
+      Taro.showToast({ title: '暂无可分配房间', icon: 'none' });
+    }
+    setShowSkippedActionSheet(null);
   };
 
   const handleTakeNumber = () => {
     const availablePatients = patients.filter(
-      p => !queue.some(q => q.patientId === p.id && (q.status === 'waiting' || q.status === 'calling'))
+      p => !queue.some(q => q.patientId === p.id && (q.status === 'waiting' || q.status === 'calling' || q.status === 'skipped'))
     );
     if (availablePatients.length === 0) {
       Taro.showToast({ title: '暂无可排队患者', icon: 'none' });
@@ -162,7 +193,7 @@ const QueuePage: React.FC = () => {
       {examRooms.map(room => {
         const isBusy = room.status === 'busy';
         const waitingList = getWaitingByExamItem(room.examItemId);
-        const skippedList = getSkippedByExamItem(room.examItemId);
+        const skippedListForRoom = getSkippedByExamItem(room.examItemId);
         const examItem = examItems.find(e => e.id === room.examItemId);
         const elapsed = getElapsedMinutes(room.callTime);
         const estimatedEnd = getEstimatedEndTime(room.callTime, examItem?.duration || 10);
@@ -280,7 +311,7 @@ const QueuePage: React.FC = () => {
                 >
                   {waitingList.length > 0 ? '叫下一位' : '暂无等待'}
                 </Button>
-                {skippedList.length > 0 && (
+                {skippedListForRoom.length > 0 && (
                   <Button
                     className={classNames(styles.roomBtn, styles.roomBtnWarning)}
                     onClick={() => setShowRecallSheet(room.id)}
@@ -354,8 +385,8 @@ const QueuePage: React.FC = () => {
                   <View className={styles.actionSheetTitle}>
                     <Text>重新叫回跳过的患者</Text>
                   </View>
-                  {skippedList.length > 0 ? (
-                    skippedList.map(item => (
+                  {skippedListForRoom.length > 0 ? (
+                    skippedListForRoom.map(item => (
                       <Button
                         key={item.id}
                         className={styles.actionSheetItem}
@@ -370,6 +401,35 @@ const QueuePage: React.FC = () => {
                       <Text>暂无跳过的患者</Text>
                     </View>
                   )}
+                  <Button className={styles.actionSheetCancel} onClick={() => setShowRecallSheet(null)}>
+                    取消
+                  </Button>
+                </View>
+              </View>
+            )}
+
+            {showRecallSheet && showRecallSheet.startsWith('multi:') && (
+              <View className={styles.actionSheetMask} onClick={() => setShowRecallSheet(null)}>
+                <View className={styles.actionSheet} onClick={e => e.stopPropagation()}>
+                  <View className={styles.actionSheetTitle}>
+                    <Text>选择检查室</Text>
+                  </View>
+                  {(() => {
+                    const itemId = showRecallSheet.split(':')[1];
+                    const item = queue.find(q => q.id === itemId);
+                    if (!item) return null;
+                    return getRoomsByExamItem(item.examItemId)
+                      .filter(r => r.status === 'idle')
+                      .map(r => (
+                        <Button
+                          key={r.id}
+                          className={styles.actionSheetItem}
+                          onClick={() => handleRecall(itemId, r.id)}
+                        >
+                          {r.name}
+                        </Button>
+                      ));
+                  })()}
                   <Button className={styles.actionSheetCancel} onClick={() => setShowRecallSheet(null)}>
                     取消
                   </Button>
@@ -451,7 +511,15 @@ const QueuePage: React.FC = () => {
     <ScrollView className={styles.page} scrollY>
       <View className={styles.headerSection}>
         <Text className={styles.headerTitle}>体检排队叫号</Text>
-        <Text className={styles.headerSubtitle}>{dayjs().format('YYYY年MM月DD日 dddd')}</Text>
+        <View className={styles.headerRow}>
+          <Text className={styles.headerSubtitle}>{dayjs().format('YYYY年MM月DD日 dddd')}</Text>
+          <Button
+            className={styles.headerLogBtn}
+            onClick={() => Taro.navigateTo({ url: '/pages/dispatch-log/index' })}
+          >
+            调度流水
+          </Button>
+        </View>
       </View>
 
       <View className={styles.statsSection}>
@@ -487,6 +555,98 @@ const QueuePage: React.FC = () => {
           <Text className={styles.viewTabText}>负载视图</Text>
         </View>
       </View>
+
+      {skippedList.length > 0 && (
+        <View className={styles.section}>
+          <View className={styles.sectionHeader}>
+            <Text className={classNames(styles.sectionTitle, styles.skippedTitle)}>
+              ⚠ 待处理（跳过 {skippedList.length}人）
+            </Text>
+          </View>
+
+          <View className={styles.skippedList}>
+            {skippedList.map(item => {
+              const minutesSkipped = getSkippedMinutes(item.skippedAt);
+              return (
+                <View key={item.id} className={styles.skippedCard}>
+                  <View className={styles.skippedAvatar}>
+                    <Text className={styles.skippedAvatarText}>{item.patientName.charAt(0)}</Text>
+                  </View>
+                  <View className={styles.skippedInfo}>
+                    <View className={styles.skippedRow1}>
+                      <Text className={styles.skippedName}>{item.patientName}</Text>
+                      {item.patientLevel !== 'normal' && (
+                        <StatusTag
+                          type={item.patientLevel as any}
+                          text={getLevelText(item.patientLevel)}
+                          size="sm"
+                        />
+                      )}
+                    </View>
+                    <View className={styles.skippedRow2}>
+                      <Text className={styles.skippedItem}>{item.examItemName}</Text>
+                      <Text className={styles.skippedRoom}>
+                        来自 {item.skippedFromRoomName || '未知房间'}
+                      </Text>
+                    </View>
+                    <View className={styles.skippedRow3}>
+                      <Text className={styles.skippedTime}>已跳过 {minutesSkipped}分钟</Text>
+                      {item.examItemType === 'fasting' && (
+                        <Text className={styles.roomWaitingFasting}>空腹</Text>
+                      )}
+                    </View>
+                  </View>
+                  <View className={styles.skippedActions}>
+                    <Button
+                      className={classNames(styles.skippedBtn, styles.skippedBtnPrimary)}
+                      onClick={() => handleSkippedCallDirect(item)}
+                    >
+                      立即叫回
+                    </Button>
+                    <Button
+                      className={classNames(styles.skippedBtn, styles.skippedBtnOutline)}
+                      onClick={() => setShowSkippedActionSheet(item.id)}
+                    >
+                      更多
+                    </Button>
+                  </View>
+
+                  {showSkippedActionSheet === item.id && (
+                    <View className={styles.actionSheetMask} onClick={() => setShowSkippedActionSheet(null)}>
+                      <View className={styles.actionSheet} onClick={e => e.stopPropagation()}>
+                        <View className={styles.actionSheetTitle}>
+                          <Text>处理跳过患者</Text>
+                        </View>
+                        <Button
+                          className={styles.actionSheetItem}
+                          onClick={() => handleSkippedCallDirect(item)}
+                        >
+                          立即叫回（分配空闲房间）
+                        </Button>
+                        <Button
+                          className={styles.actionSheetItem}
+                          onClick={() => handleReturnToQueue(item.id)}
+                        >
+                          退回普通等待队列
+                        </Button>
+                        <Button
+                          className={classNames(styles.actionSheetItem, styles.danger)}
+                          onClick={() => handleReturnToQueue(item.id)}
+                        >
+                          移除队列
+                        </Button>
+                        <Button className={styles.actionSheetCancel} onClick={() => setShowSkippedActionSheet(null)}>
+                          取消
+                        </Button>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <View className={styles.section}>
         <View className={styles.sectionHeader}>

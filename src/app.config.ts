@@ -4,7 +4,8 @@ export default defineAppConfig({
     'pages/priority/index',
     'pages/quota/index',
     'pages/records/index',
-    'pages/billing/index'
+    'pages/billing/index',
+    'pages/dispatch-log/index'
   ],
   window: {
     backgroundTextStyle: 'light',

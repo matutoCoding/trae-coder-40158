@@ -1,0 +1,318 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+}
+
+.headerSection {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  padding: $spacing-xl $page-padding $spacing-2xl;
+  color: $color-text-white;
+  position: relative;
+  z-index: 1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+  }
+}
+
+.headerTitle {
+  display: block;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-xs;
+  position: relative;
+  z-index: 1;
+}
+
+.headerSubtitle {
+  display: block;
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
+
+.filterSection {
+  margin: -40rpx $page-padding $spacing-md;
+  position: relative;
+  z-index: 5;
+}
+
+.filterCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.periodNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.periodArrow {
+  @include button-reset;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: $color-bg-page;
+  color: $color-text-primary;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.disabled {
+    opacity: 0.4;
+  }
+
+  &:active {
+    background: $color-divider;
+  }
+}
+
+.periodLabel {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.actionTabs {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.actionTab {
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-button;
+  background: $color-bg-page;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-primary;
+    color: $color-text-white;
+    font-weight: $font-weight-medium;
+  }
+
+  &.all {
+    &.active {
+      background: $color-text-secondary;
+    }
+  }
+
+  &.call {
+    &.active { background: $color-primary; }
+  }
+
+  &.complete {
+    &.active { background: $color-success; }
+  }
+
+  &.skip {
+    &.active { background: $color-warning; }
+  }
+
+  &.cancel {
+    &.active { background: $color-error; }
+  }
+
+  &.transfer {
+    &.active { background: #6366f1; }
+  }
+
+  &.recall {
+    &.active { background: #8b5cf6; }
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.summaryBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.summaryItem {
+  flex: 1;
+  text-align: center;
+  padding: $spacing-sm 0;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+}
+
+.summaryValue {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.summaryLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.logList {
+  padding: 0 $page-padding;
+}
+
+.logCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  border-left: 6rpx solid transparent;
+  position: relative;
+
+  &.call { border-left-color: $color-primary; }
+  &.complete { border-left-color: $color-success; }
+  &.skip { border-left-color: $color-warning; }
+  &.cancel { border-left-color: $color-error; }
+  &.transfer { border-left-color: #6366f1; }
+  &.recall { border-left-color: #8b5cf6; }
+  &.add_queue { border-left-color: $color-primary-light; }
+  &.insert_vip { border-left-color: #f59e0b; }
+  &.insert_urgent { border-left-color: #ef4444; }
+}
+
+.logHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.logAction {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.logIcon {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: $radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-md;
+
+  &.call { background: rgba(15, 198, 194, 0.15); color: $color-primary; }
+  &.complete { background: rgba(16, 185, 129, 0.15); color: $color-success; }
+  &.skip { background: rgba(255, 125, 0, 0.15); color: $color-warning; }
+  &.cancel { background: rgba(239, 68, 68, 0.15); color: $color-error; }
+  &.transfer { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+  &.recall { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+  &.add_queue { background: rgba(15, 198, 194, 0.1); color: $color-primary-light; }
+  &.insert_vip { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+  &.insert_urgent { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+}
+
+.logActionLabel {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.logTime {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.logBody {
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.logRow {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: $spacing-xs;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.logLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  width: 140rpx;
+  flex-shrink: 0;
+}
+
+.logValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+
+  &.amount {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.logNote {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+}
+
+.emptyState {
+  text-align: center;
+  padding: $spacing-4xl $spacing-lg;
+}
+
+.emptyIcon {
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto $spacing-md;
+  border-radius: $radius-round;
+  background: $color-bg-card;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80rpx;
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  display: block;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.emptySubtitle {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

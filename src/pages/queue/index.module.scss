@@ -704,3 +704,139 @@
   background: $color-warning;
   color: $color-text-white;
 }
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-xs;
+}
+
+.headerLogBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  height: 52rpx;
+  border-radius: $radius-button;
+  background: rgba(255, 255, 255, 0.2);
+  color: $color-text-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.skippedTitle {
+  color: $color-error;
+}
+
+.skippedList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.skippedCard {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  border-left: 6rpx solid $color-warning;
+  box-shadow: $shadow-card;
+  position: relative;
+}
+
+.skippedAvatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, rgba(255, 125, 0, 0.2) 0%, rgba(255, 125, 0, 0.1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.skippedAvatarText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-warning;
+}
+
+.skippedInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.skippedRow1,
+.skippedRow2,
+.skippedRow3 {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: 6rpx;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.skippedName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.skippedItem {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.skippedRoom {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  padding: 2rpx 12rpx;
+  background: $color-bg-page;
+  border-radius: $radius-xs;
+}
+
+.skippedTime {
+  font-size: 22rpx;
+  color: $color-warning;
+  font-weight: $font-weight-medium;
+}
+
+.skippedActions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.skippedBtn {
+  @include button-reset;
+  padding: $spacing-xs $spacing-md;
+  height: 52rpx;
+  border-radius: $radius-button;
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.skippedBtnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+}
+
+.skippedBtnOutline {
+  border: 2rpx solid $color-divider;
+  background: transparent;
+  color: $color-text-secondary;
+}

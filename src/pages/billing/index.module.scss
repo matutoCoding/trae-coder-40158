@@ -669,3 +669,269 @@
     opacity: 0.9;
   }
 }
+
+.viewModeTabs {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  position: relative;
+  z-index: 1;
+}
+
+.viewModeTab {
+  flex: 1;
+  height: 64rpx;
+  border-radius: $radius-button;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-text-white;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+
+    .viewModeTabText {
+      color: $color-primary;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.viewModeTabText {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.summaryOverviewCard {
+  margin: $spacing-md $page-padding;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.summaryOverviewRow {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-top: $spacing-md;
+    border-top: 1rpx solid $color-divider;
+  }
+}
+
+.summaryOverviewItem {
+  flex: 1;
+  text-align: center;
+  padding: $spacing-sm 0;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+}
+
+.summaryOverviewLabel {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.summaryOverviewValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+
+  &.bold {
+    color: $color-primary;
+    font-size: $font-size-xl;
+  }
+}
+
+.summaryOverviewSubItem {
+  flex: 1;
+  text-align: center;
+}
+
+.summaryOverviewSubLabel {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.summaryOverviewSubValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+
+  &.package {
+    color: $color-primary;
+  }
+
+  &.selfPay {
+    color: $color-selfpay;
+  }
+}
+
+.summaryCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.summaryCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  gap: $spacing-md;
+  transition: background $transition-base;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.summaryCardLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.summaryCardName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.summaryCardCount {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.summaryCardRight {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.summaryCardAmountRow {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: 6rpx;
+}
+
+.summaryCardPackage {
+  font-size: 22rpx;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.summaryCardSelfPay {
+  font-size: 22rpx;
+  color: $color-selfpay;
+  font-weight: $font-weight-medium;
+}
+
+.summaryCardFooterRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  justify-content: flex-end;
+}
+
+.summaryCardTotal {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.summaryCardArrow {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.summaryCardBody {
+  padding: 0 $spacing-lg $spacing-lg;
+  border-top: 1rpx solid $color-divider;
+}
+
+.summaryCardBodyHeader {
+  padding: $spacing-md 0;
+}
+
+.summaryCardBodyTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}
+
+.summaryRecordList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.summaryRecord {
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  border-left: 4rpx solid $color-divider;
+
+  &.summaryRecordSplit {
+    border-left-color: $color-warning;
+  }
+}
+
+.summaryRecordRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6rpx;
+}
+
+.summaryRecordPatient {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.summaryRecordRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.summaryRecordAmount {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+
+  &.selfPay {
+    color: $color-selfpay;
+  }
+
+  &.splitColor {
+    color: $color-warning;
+  }
+}
+
+.summaryRecordSplitText {
+  font-size: 22rpx;
+  color: $color-text-secondary;
+  margin-bottom: 6rpx;
+  display: block;
+}
+
+.summaryRecordDate {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}

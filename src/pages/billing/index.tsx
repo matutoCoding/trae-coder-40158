@@ -6,12 +6,17 @@ import classNames from 'classnames';
 import { useQueueStore } from '@/store/useQueueStore';
 import StatusTag from '@/components/StatusTag';
 import { formatCurrency } from '@/utils';
+import type { ExamItemSummary, QuotaRecord } from '@/types';
+
+type ViewMode = 'patient' | 'summary';
 
 const BillingPage: React.FC = () => {
-  const { patients, currentPeriod, getPatientMonthBill, quotaRecords } = useQueueStore();
+  const { patients, currentPeriod, getPatientMonthBill, getExamItemSummaries, quotaRecords } = useQueueStore();
   const [selectedPatientId, setSelectedPatientId] = useState<string>(patients[0]?.id || '');
   const [selectedPeriod, setSelectedPeriod] = useState<string>(currentPeriod);
   const [showChecklist, setShowChecklist] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('patient');
+  const [expandedSummaryId, setExpandedSummaryId] = useState<string | null>(null);
 
   const availablePeriods = useMemo(() => {
     const periods = new Set<string>();
@@ -33,6 +38,19 @@ const BillingPage: React.FC = () => {
   const selectedPatient = useMemo(() => {
     return patients.find(p => p.id === selectedPatientId);
   }, [patients, selectedPatientId]);
+
+  const itemSummaries = useMemo(() => {
+    return getExamItemSummaries(selectedPeriod);
+  }, [selectedPeriod, getExamItemSummaries]);
+
+  const summaryTotals = useMemo(() => {
+    return itemSummaries.reduce((acc, s) => ({
+      patientCount: acc.patientCount + s.patientCount,
+      packageTotal: acc.packageTotal + s.packageTotal,
+      selfPayTotal: acc.selfPayTotal + s.selfPayTotal,
+      totalAmount: acc.totalAmount + s.totalAmount
+    }), { patientCount: 0, packageTotal: 0, selfPayTotal: 0, totalAmount: 0 });
+  }, [itemSummaries]);
 
   const quotaPercent = useMemo(() => {
     if (!selectedPatient) return 0;
@@ -103,10 +121,11 @@ const BillingPage: React.FC = () => {
         .sort((a, b) => b.timestamp - a.timestamp)
         .map((r, i) => {
           const typeLabel = getPaymentLabel(r.paymentType);
+          const roomStr = r.roomName ? `[${r.roomName}]` : '';
           if (r.paymentType === 'split') {
-            return `  ${i + 1}. ${r.examItemName}  ${r.date} ${r.time}\n     合计 ${formatCurrency(r.amount)}（套餐${formatCurrency(r.packageAmount)}+自费${formatCurrency(r.selfPayAmount)}） [${typeLabel}]`;
+            return `  ${i + 1}. ${r.examItemName} ${roomStr} ${r.date} ${r.time}\n     合计 ${formatCurrency(r.amount)}（套餐${formatCurrency(r.packageAmount)}+自费${formatCurrency(r.selfPayAmount)}） [${typeLabel}]`;
           }
-          return `  ${i + 1}. ${r.examItemName}  ${r.date} ${r.time}  ${formatCurrency(r.amount)} [${typeLabel}]`;
+          return `  ${i + 1}. ${r.examItemName} ${roomStr} ${r.date} ${r.time}  ${formatCurrency(r.amount)} [${typeLabel}]`;
         }),
       '====================================',
       `生成时间：${new Date().toLocaleString('zh-CN')}`,
@@ -120,45 +139,12 @@ const BillingPage: React.FC = () => {
     });
   };
 
-  return (
-    <ScrollView className={styles.page} scrollY>
-      <View className={styles.periodHeader}>
-        <View className={styles.periodNav}>
-          <Button
-            className={styles.periodArrow}
-            onClick={handlePrevMonth}
-          >
-            ‹
-          </Button>
-          <View className={styles.periodInfo}>
-            <Text className={styles.periodTitle}>{periodLabel} 患者账单</Text>
-            <Text className={styles.periodSub}>按患者查看当月消费与额度</Text>
-          </View>
-          <Button
-            className={classNames(styles.periodArrow, selectedPeriod === currentPeriod && styles.disabled)}
-            onClick={handleNextMonth}
-            disabled={selectedPeriod === currentPeriod}
-          >
-            ›
-          </Button>
-        </View>
+  const toggleSummary = (id: string) => {
+    setExpandedSummaryId(expandedSummaryId === id ? null : id);
+  };
 
-        <View className={styles.periodTabs}>
-          {availablePeriods.map(p => {
-            const [y, m] = p.split('-');
-            return (
-              <View
-                key={p}
-                className={classNames(styles.periodTab, selectedPeriod === p && styles.active)}
-                onClick={() => setSelectedPeriod(p)}
-              >
-                <Text className={styles.periodTabText}>{m}月</Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
+  const renderPatientView = () => (
+    <>
       <View className={styles.patientSelector}>
         <ScrollView scrollX className={styles.patientScroll}>
           {patients.map(patient => (
@@ -308,7 +294,10 @@ const BillingPage: React.FC = () => {
                     </View>
                   )}
                   <View className={styles.billItemFooter}>
-                    <Text className={styles.billItemDate}>{record.date} {record.time}</Text>
+                    <Text className={styles.billItemDate}>
+                      {record.date} {record.time}
+                      {record.roomName && ` · ${record.roomName}`}
+                    </Text>
                   </View>
                 </View>
               ))
@@ -320,6 +309,200 @@ const BillingPage: React.FC = () => {
           </View>
         </>
       )}
+    </>
+  );
+
+  const renderRecord = (record: QuotaRecord) => (
+    <View key={record.id} className={classNames(
+      styles.summaryRecord,
+      record.paymentType === 'split' && styles.summaryRecordSplit
+    )}>
+      <View className={styles.summaryRecordRow}>
+        <Text className={styles.summaryRecordPatient}>{record.patientName}</Text>
+        <View className={styles.summaryRecordRight}>
+          <Text className={classNames(
+            styles.summaryRecordAmount,
+            record.paymentType === 'self-pay' && styles.selfPay,
+            record.paymentType === 'split' && styles.splitColor
+          )}>
+            -{formatCurrency(record.amount)}
+          </Text>
+          <StatusTag
+            type={record.paymentType as any}
+            text={getPaymentLabel(record.paymentType)}
+            size="sm"
+          />
+        </View>
+      </View>
+      {record.paymentType === 'split' && (
+        <Text className={styles.summaryRecordSplitText}>
+          套餐{formatCurrency(record.packageAmount)} + 自费{formatCurrency(record.selfPayAmount)}
+        </Text>
+      )}
+      <Text className={styles.summaryRecordDate}>
+        {record.date} {record.time}
+        {record.roomName && ` · ${record.roomName}`}
+      </Text>
+    </View>
+  );
+
+  const renderSummaryView = () => (
+    <>
+      <View className={styles.summaryOverviewCard}>
+        <View className={styles.summaryOverviewRow}>
+          <View className={styles.summaryOverviewItem}>
+            <Text className={styles.summaryOverviewLabel}>覆盖项目</Text>
+            <Text className={styles.summaryOverviewValue}>{itemSummaries.length}项</Text>
+          </View>
+          <View className={styles.summaryOverviewItem}>
+            <Text className={styles.summaryOverviewLabel}>服务人次</Text>
+            <Text className={styles.summaryOverviewValue}>{summaryTotals.patientCount}</Text>
+          </View>
+          <View className={styles.summaryOverviewItem}>
+            <Text className={styles.summaryOverviewLabel}>总额</Text>
+            <Text className={classNames(styles.summaryOverviewValue, styles.bold)}>
+              {formatCurrency(summaryTotals.totalAmount)}
+            </Text>
+          </View>
+        </View>
+        <View className={styles.summaryOverviewRow}>
+          <View className={styles.summaryOverviewSubItem}>
+            <Text className={styles.summaryOverviewSubLabel}>套餐合计</Text>
+            <Text className={classNames(styles.summaryOverviewSubValue, styles.package)}>
+              {formatCurrency(summaryTotals.packageTotal)}
+            </Text>
+          </View>
+          <View className={styles.summaryOverviewSubItem}>
+            <Text className={styles.summaryOverviewSubLabel}>自费合计</Text>
+            <Text className={classNames(styles.summaryOverviewSubValue, styles.selfPay)}>
+              {formatCurrency(summaryTotals.selfPayTotal)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View className={styles.section}>
+        <View className={styles.sectionHeader}>
+          <Text className={styles.sectionTitle}>按项目汇总</Text>
+          <Text className={styles.sectionCount}>共{itemSummaries.length}项</Text>
+        </View>
+
+        {itemSummaries.length > 0 ? (
+          itemSummaries.map((summary: ExamItemSummary) => {
+            const isExpanded = expandedSummaryId === summary.examItemId;
+            return (
+              <View key={summary.examItemId} className={styles.summaryCard}>
+                <View
+                  className={styles.summaryCardHeader}
+                  onClick={() => toggleSummary(summary.examItemId)}
+                >
+                  <View className={styles.summaryCardLeft}>
+                    <Text className={styles.summaryCardName}>{summary.examItemName}</Text>
+                    <Text className={styles.summaryCardCount}>
+                      {summary.patientCount}人次
+                    </Text>
+                  </View>
+                  <View className={styles.summaryCardRight}>
+                    <View className={styles.summaryCardAmountRow}>
+                      <Text className={styles.summaryCardPackage}>
+                        套餐 {formatCurrency(summary.packageTotal)}
+                      </Text>
+                      <Text className={styles.summaryCardSelfPay}>
+                        自费 {formatCurrency(summary.selfPayTotal)}
+                      </Text>
+                    </View>
+                    <View className={styles.summaryCardFooterRow}>
+                      <Text className={styles.summaryCardTotal}>
+                        合计 {formatCurrency(summary.totalAmount)}
+                      </Text>
+                      <Text className={styles.summaryCardArrow}>{isExpanded ? '▲' : '▼'}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {isExpanded && (
+                  <View className={styles.summaryCardBody}>
+                    <View className={styles.summaryCardBodyHeader}>
+                      <Text className={styles.summaryCardBodyTitle}>
+                        明细（{summary.records.length}条）
+                      </Text>
+                    </View>
+                    <View className={styles.summaryRecordList}>
+                      {summary.records
+                        .sort((a, b) => b.timestamp - a.timestamp)
+                        .map(renderRecord)}
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })
+        ) : (
+          <View className={styles.emptyState}>
+            <Text className={styles.emptyText}>本月暂无消费记录</Text>
+          </View>
+        )}
+      </View>
+    </>
+  );
+
+  return (
+    <ScrollView className={styles.page} scrollY>
+      <View className={styles.periodHeader}>
+        <View className={styles.periodNav}>
+          <Button
+            className={styles.periodArrow}
+            onClick={handlePrevMonth}
+          >
+            ‹
+          </Button>
+          <View className={styles.periodInfo}>
+            <Text className={styles.periodTitle}>{periodLabel} 对账</Text>
+            <Text className={styles.periodSub}>
+              {viewMode === 'patient' ? '按患者查看当月消费与额度' : '按检查项目汇总当月消费'}
+            </Text>
+          </View>
+          <Button
+            className={classNames(styles.periodArrow, selectedPeriod === currentPeriod && styles.disabled)}
+            onClick={handleNextMonth}
+            disabled={selectedPeriod === currentPeriod}
+          >
+            ›
+          </Button>
+        </View>
+
+        <View className={styles.periodTabs}>
+          {availablePeriods.map(p => {
+            const [y, m] = p.split('-');
+            return (
+              <View
+                key={p}
+                className={classNames(styles.periodTab, selectedPeriod === p && styles.active)}
+                onClick={() => setSelectedPeriod(p)}
+              >
+                <Text className={styles.periodTabText}>{m}月</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <View className={styles.viewModeTabs}>
+          <View
+            className={classNames(styles.viewModeTab, viewMode === 'patient' && styles.active)}
+            onClick={() => setViewMode('patient')}
+          >
+            <Text className={styles.viewModeTabText}>患者账单</Text>
+          </View>
+          <View
+            className={classNames(styles.viewModeTab, viewMode === 'summary' && styles.active)}
+            onClick={() => setViewMode('summary')}
+          >
+            <Text className={styles.viewModeTabText}>项目汇总</Text>
+          </View>
+        </View>
+      </View>
+
+      {viewMode === 'patient' ? renderPatientView() : renderSummaryView()}
 
       {showChecklist && bill && selectedPatient && (
         <View className={styles.checklistModal} onClick={() => setShowChecklist(false)}>
@@ -409,6 +592,7 @@ const BillingPage: React.FC = () => {
                       <View className={styles.checklistItemMeta}>
                         <Text className={styles.checklistItemDate}>
                           {record.date} {record.time}
+                          {record.roomName && ` · ${record.roomName}`}
                         </Text>
                         <StatusTag
                           type={record.paymentType as any}

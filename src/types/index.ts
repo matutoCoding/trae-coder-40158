@@ -6,6 +6,8 @@ export type ExamItemType = 'fasting' | 'non-fasting';
 
 export type PaymentType = 'package' | 'self-pay' | 'split';
 
+export type DispatchAction = 'call' | 'skip' | 'cancel' | 'transfer' | 'complete' | 'recall' | 'add_queue' | 'insert_vip' | 'insert_urgent';
+
 export interface SplitDetail {
   packageAmount: number;
   selfPayAmount: number;
@@ -45,6 +47,9 @@ export interface QueueItem {
   priority: number;
   queueTime: string;
   estimatedTime: number;
+  skippedFromRoomId?: string | null;
+  skippedFromRoomName?: string | null;
+  skippedAt?: number | null;
 }
 
 export interface QuotaRecord {
@@ -61,6 +66,8 @@ export interface QuotaRecord {
   time: string;
   period: string;
   timestamp: number;
+  roomId?: string | null;
+  roomName?: string | null;
 }
 
 export interface PackageQuota {
@@ -91,4 +98,34 @@ export interface ItemLoadStat {
   avgDuration: number;
   estimatedWaitMinutes: number;
   estimatedFinishTime: string;
+}
+
+export interface DispatchLog {
+  id: string;
+  action: DispatchAction;
+  actionLabel: string;
+  timestamp: number;
+  date: string;
+  time: string;
+  patientId: string | null;
+  patientName: string | null;
+  examItemId: string | null;
+  examItemName: string | null;
+  fromRoomId: string | null;
+  fromRoomName: string | null;
+  toRoomId: string | null;
+  toRoomName: string | null;
+  amount: number | null;
+  paymentType: PaymentType | null;
+  note: string | null;
+}
+
+export interface ExamItemSummary {
+  examItemId: string;
+  examItemName: string;
+  patientCount: number;
+  packageTotal: number;
+  selfPayTotal: number;
+  totalAmount: number;
+  records: QuotaRecord[];
 }
