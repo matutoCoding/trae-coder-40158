@@ -4,7 +4,12 @@ export type QueueStatus = 'waiting' | 'calling' | 'completed' | 'skipped';
 
 export type ExamItemType = 'fasting' | 'non-fasting';
 
-export type PaymentType = 'package' | 'self-pay';
+export type PaymentType = 'package' | 'self-pay' | 'split';
+
+export interface SplitDetail {
+  packageAmount: number;
+  selfPayAmount: number;
+}
 
 export interface ExamItem {
   id: string;
@@ -50,6 +55,8 @@ export interface QuotaRecord {
   examItemName: string;
   amount: number;
   paymentType: PaymentType;
+  packageAmount: number;
+  selfPayAmount: number;
   date: string;
   time: string;
   period: string;
@@ -71,4 +78,5 @@ export interface ExamRoom {
   status: 'idle' | 'busy';
   currentPatientId: string | null;
   currentPatientName: string | null;
+  callTime: number | null;
 }

@@ -73,4 +73,9 @@
     background-color: rgba(0, 180, 42, 0.15);
     color: $color-success;
   }
+
+  &.split {
+    background-color: rgba(255, 125, 0, 0.15);
+    color: $color-warning;
+  }
 }

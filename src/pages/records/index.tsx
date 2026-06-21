@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
+import { View, Text, ScrollView, Button } from '@tarojs/components';
+import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import classNames from 'classnames';
 import { useQueueStore } from '@/store/useQueueStore';
 import StatusTag from '@/components/StatusTag';
 import { formatCurrency } from '@/utils';
-import type { PaymentType } from '@/types';
+import type { PaymentType, QuotaRecord } from '@/types';
 
 type FilterType = 'all' | PaymentType;
 
@@ -36,7 +37,11 @@ const RecordsPage: React.FC = () => {
     let result = [...currentMonthRecords];
 
     if (filter !== 'all') {
-      result = result.filter(r => r.paymentType === filter);
+      if (filter === 'split') {
+        result = result.filter(r => r.paymentType === 'split');
+      } else {
+        result = result.filter(r => r.paymentType === filter);
+      }
     }
 
     if (selectedPatient !== 'all') {
@@ -47,7 +52,7 @@ const RecordsPage: React.FC = () => {
   }, [currentMonthRecords, filter, selectedPatient]);
 
   const groupedRecords = useMemo(() => {
-    const groups: Record<string, typeof filteredRecords> = {};
+    const groups: Record<string, QuotaRecord[]> = {};
     filteredRecords.forEach(record => {
       const dateStr = record.date;
       if (!groups[dateStr]) {
@@ -58,16 +63,16 @@ const RecordsPage: React.FC = () => {
     return groups;
   }, [filteredRecords]);
 
-  const getDailyTotal = (records: typeof filteredRecords) => {
+  const getDailyTotal = (records: QuotaRecord[]) => {
     return records.reduce((sum, r) => sum + r.amount, 0);
   };
 
-  const getDailyPackageTotal = (records: typeof filteredRecords) => {
-    return records.filter(r => r.paymentType === 'package').reduce((sum, r) => sum + r.amount, 0);
+  const getDailyPackageTotal = (records: QuotaRecord[]) => {
+    return records.reduce((sum, r) => sum + r.packageAmount, 0);
   };
 
-  const getDailySelfPayTotal = (records: typeof filteredRecords) => {
-    return records.filter(r => r.paymentType === 'self-pay').reduce((sum, r) => sum + r.amount, 0);
+  const getDailySelfPayTotal = (records: QuotaRecord[]) => {
+    return records.reduce((sum, r) => sum + r.selfPayAmount, 0);
   };
 
   const handleFilterChange = (type: FilterType) => {
@@ -78,13 +83,22 @@ const RecordsPage: React.FC = () => {
     setSelectedPatient(patientId);
   };
 
-  const getFilterLabel = (type: FilterType) => {
-    const labels: Record<FilterType, string> = {
-      all: '全部',
-      package: '套餐扣费',
-      'self-pay': '自费'
-    };
-    return labels[type];
+  const getPaymentLabel = (record: QuotaRecord) => {
+    switch (record.paymentType) {
+      case 'package': return '套餐';
+      case 'self-pay': return '自费';
+      case 'split': return '套餐+自费';
+      default: return '';
+    }
+  };
+
+  const getPaymentTagType = (record: QuotaRecord): string => {
+    switch (record.paymentType) {
+      case 'package': return 'package';
+      case 'self-pay': return 'self-pay';
+      case 'split': return 'split';
+      default: return 'package';
+    }
   };
 
   return (
@@ -129,13 +143,13 @@ const RecordsPage: React.FC = () => {
 
       <View className={styles.filterSection}>
         <View className={styles.filterRow}>
-          {(['all', 'package', 'self-pay'] as FilterType[]).map(type => (
+          {(['all', 'package', 'self-pay', 'split'] as FilterType[]).map(type => (
             <View
               key={type}
               className={classNames(styles.filterChip, filter === type && styles.active)}
               onClick={() => handleFilterChange(type)}
             >
-              {getFilterLabel(type)}
+              {type === 'all' ? '全部' : type === 'package' ? '套餐扣费' : type === 'self-pay' ? '自费' : '套餐+自费'}
             </View>
           ))}
         </View>
@@ -160,8 +174,16 @@ const RecordsPage: React.FC = () => {
 
       <View className={styles.recordsSection}>
         <View className={styles.sectionHeader}>
-          <Text className={styles.sectionTitle}>消费明细</Text>
-          <Text className={styles.sectionCount}>共 {filteredRecords.length} 条</Text>
+          <View style={{ display: 'flex', alignItems: 'center', gap: '16rpx' }}>
+            <Text className={styles.sectionTitle}>消费明细</Text>
+            <Text className={styles.sectionCount}>共 {filteredRecords.length} 条</Text>
+          </View>
+          <Button
+            className={styles.billingBtn}
+            onClick={() => Taro.navigateTo({ url: '/pages/billing/index' })}
+          >
+            患者账单
+          </Button>
         </View>
 
         {filteredRecords.length > 0 ? (
@@ -200,12 +222,16 @@ const RecordsPage: React.FC = () => {
                   </View>
                 </View>
                 {dayRecords.map(record => (
-                  <View key={record.id} className={styles.recordCard}>
+                  <View key={record.id} className={classNames(
+                    styles.recordCard,
+                    record.paymentType === 'split' && styles.recordCardSplit
+                  )}>
                     <View className={styles.recordHeader}>
                       <View className={styles.recordPatient}>
                         <View className={classNames(
                           styles.recordAvatar,
-                          record.paymentType === 'self-pay' && styles.avatarSelfPay
+                          record.paymentType === 'self-pay' && styles.avatarSelfPay,
+                          record.paymentType === 'split' && styles.avatarSplit
                         )}>
                           <Text className={styles.recordAvatarText}>
                             {record.patientName.charAt(0)}
@@ -219,13 +245,14 @@ const RecordsPage: React.FC = () => {
                       <View className={styles.recordAmountWrap}>
                         <Text className={classNames(
                           styles.recordAmount,
-                          record.paymentType === 'self-pay' && styles.selfPay
+                          record.paymentType === 'self-pay' && styles.selfPay,
+                          record.paymentType === 'split' && styles.splitColor
                         )}>
                           -{formatCurrency(record.amount)}
                         </Text>
                         <StatusTag
-                          type={record.paymentType === 'package' ? 'package' : 'self-pay'}
-                          text={record.paymentType === 'package' ? '套餐' : '自费'}
+                          type={getPaymentTagType(record) as any}
+                          text={getPaymentLabel(record)}
                           size="sm"
                         />
                       </View>
@@ -233,6 +260,22 @@ const RecordsPage: React.FC = () => {
                     <View className={styles.recordBody}>
                       <Text className={styles.recordItem}>{record.examItemName}</Text>
                     </View>
+                    {record.paymentType === 'split' && (
+                      <View className={styles.recordSplitDetail}>
+                        <View className={styles.splitRow}>
+                          <Text className={styles.splitLabel}>套餐扣费</Text>
+                          <Text className={styles.splitPackageValue}>
+                            -{formatCurrency(record.packageAmount)}
+                          </Text>
+                        </View>
+                        <View className={styles.splitRow}>
+                          <Text className={styles.splitLabel}>自费补缴</Text>
+                          <Text className={styles.splitSelfPayValue}>
+                            -{formatCurrency(record.selfPayAmount)}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                     <View className={styles.recordFooter}>
                       <Text className={styles.recordPeriod}>
                         周期：{record.period}

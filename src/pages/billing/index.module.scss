@@ -1,0 +1,372 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+
+.periodHeader {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-lg $page-padding $spacing-xl;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -80rpx;
+    right: -60rpx;
+    width: 240rpx;
+    height: 240rpx;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+  }
+}
+
+.periodTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  display: block;
+  margin-bottom: $spacing-xs;
+  position: relative;
+  z-index: 1;
+}
+
+.periodSub {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.8);
+  position: relative;
+  z-index: 1;
+}
+
+.patientSelector {
+  margin: -20rpx $page-padding $spacing-md;
+  position: relative;
+  z-index: 2;
+}
+
+.patientScroll {
+  white-space: nowrap;
+}
+
+.patientChip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  margin-right: $spacing-sm;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+  border: 2rpx solid transparent;
+
+  &.active {
+    background: $color-primary;
+    border-color: $color-primary;
+
+    .patientChipName,
+    .patientChipLevel {
+      color: $color-text-white;
+    }
+  }
+
+  &.chipVip.active {
+    background: $color-vip;
+    border-color: $color-vip;
+  }
+
+  &.chipUrgent.active {
+    background: $color-error;
+    border-color: $color-error;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.patientChipName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.patientChipLevel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.patientHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin: 0 $page-padding $spacing-md;
+  padding: $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.patientAvatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.patientAvatarText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.patientInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.patientName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  @include text-ellipsis;
+}
+
+.patientMeta {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  display: block;
+  @include text-ellipsis;
+}
+
+.quotaCard {
+  margin: 0 $page-padding $spacing-md;
+  padding: $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.quotaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.quotaTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.quotaStatus {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+
+  &.quotaEmpty {
+    color: $color-error;
+  }
+}
+
+.quotaProgress {
+  height: 12rpx;
+  background: $color-bg-page;
+  border-radius: $radius-round;
+  overflow: hidden;
+  margin-bottom: $spacing-md;
+}
+
+.quotaProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-base;
+
+  &.quotaWarning {
+    background: linear-gradient(90deg, $color-warning 0%, #ff9a3d 100%);
+  }
+
+  &.quotaDanger {
+    background: linear-gradient(90deg, $color-error 0%, #ff6b6b 100%);
+  }
+}
+
+.quotaRow {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.quotaItem {
+  flex: 1;
+  text-align: center;
+}
+
+.quotaItemLabel {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.quotaItemValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+
+  &.quotaEmpty {
+    color: $color-error;
+  }
+}
+
+.billSummary {
+  display: flex;
+  align-items: center;
+  margin: 0 $page-padding $spacing-md;
+  padding: $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.billSummaryItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.billSummaryLabel {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.billSummaryValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+
+  &.package {
+    color: $color-primary;
+  }
+
+  &.selfPay {
+    color: $color-selfpay;
+  }
+}
+
+.billSummaryDivider {
+  width: 1rpx;
+  height: 48rpx;
+  background: $color-divider;
+}
+
+.section {
+  margin: 0 $page-padding;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionCount {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.billItem {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-sm;
+  box-shadow: $shadow-card;
+
+  &.billItemSplit {
+    border-left: 4rpx solid $color-warning;
+  }
+}
+
+.billItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.billItemName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  flex: 1;
+}
+
+.billItemRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.billItemAmount {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+
+  &.selfPay {
+    color: $color-selfpay;
+  }
+
+  &.splitColor {
+    color: $color-warning;
+  }
+}
+
+.billItemSplitDetail {
+  padding: $spacing-xs $spacing-sm;
+  margin-bottom: $spacing-xs;
+  background: rgba(255, 125, 0, 0.06);
+  border-radius: $radius-xs;
+}
+
+.splitDetailText {
+  font-size: 22rpx;
+  color: $color-text-secondary;
+}
+
+.billItemFooter {
+  padding-top: $spacing-xs;
+  border-top: 1rpx solid $color-divider;
+}
+
+.billItemDate {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 80rpx 0;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}

@@ -3,7 +3,8 @@ export default defineAppConfig({
     'pages/queue/index',
     'pages/priority/index',
     'pages/quota/index',
-    'pages/records/index'
+    'pages/records/index',
+    'pages/billing/index'
   ],
   window: {
     backgroundTextStyle: 'light',

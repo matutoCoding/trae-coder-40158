@@ -144,6 +144,11 @@
     background: linear-gradient(180deg, rgba(15, 198, 194, 0.05) 0%, $color-bg-card 30%);
   }
 
+  &.roomOverTime {
+    border-color: $color-error;
+    background: linear-gradient(180deg, rgba(245, 63, 63, 0.05) 0%, $color-bg-card 30%);
+  }
+
   &:active {
     transform: scale(0.98);
   }
@@ -233,6 +238,10 @@
   font-size: 22rpx;
   color: $color-primary;
   display: block;
+
+  &.overtime {
+    color: $color-error;
+  }
 }
 
 .roomPatientIdleText {
@@ -245,6 +254,113 @@
   font-size: 22rpx;
   color: $color-text-tertiary;
   display: block;
+}
+
+.roomTimeInfo {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+  padding: $spacing-sm;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+}
+
+.roomTimeItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
+}
+
+.roomTimeLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.roomTimeValue {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+
+  &.overtime {
+    color: $color-error;
+  }
+}
+
+.roomWaitingList {
+  margin-bottom: $spacing-sm;
+  padding: $spacing-sm;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+}
+
+.roomWaitingTitle {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.roomWaitingItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 6rpx 0;
+}
+
+.roomWaitingRank {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  font-size: 18rpx;
+  color: $color-text-tertiary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 28rpx;
+}
+
+.roomWaitingName {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  flex: 1;
+}
+
+.roomWaitingLevel {
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+  font-weight: $font-weight-medium;
+
+  &.urgent {
+    color: $color-error;
+    background: rgba(245, 63, 63, 0.1);
+  }
+
+  &.vip {
+    color: $color-vip;
+    background: rgba(255, 177, 0, 0.1);
+  }
+}
+
+.roomWaitingFasting {
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+  color: $color-warning;
+  background: rgba(255, 125, 0, 0.1);
+}
+
+.roomWaitingMore {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-top: 4rpx;
+  text-align: center;
 }
 
 .roomActions {

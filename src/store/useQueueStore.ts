@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import Taro from '@tarojs/taro';
-import type { QueueItem, Patient, QuotaRecord, ExamRoom, PatientLevel, ExamItem } from '@/types';
+import type { QueueItem, Patient, QuotaRecord, ExamRoom, PatientLevel, ExamItem, SplitDetail } from '@/types';
 import { initialQueue, patients as mockPatients, quotaRecords as mockRecords, examRooms as mockRooms, examItems as mockExamItems } from '@/data/mockData';
 import { sortQueueByPriority, generateId } from '@/utils';
 
-const STORAGE_KEY = 'health_check_queue_store_v1';
+const STORAGE_KEY = 'health_check_queue_store_v2';
 
 const getCurrentPeriod = (): string => {
   const now = new Date();
@@ -46,7 +46,7 @@ interface QueueState {
 
   resetQuota: (patientId: string) => void;
   resetAllQuota: () => void;
-  useQuota: (patientId: string, amount: number) => { success: boolean; paymentType: 'package' | 'self-pay' };
+  useQuota: (patientId: string, amount: number) => { success: boolean; paymentType: 'package' | 'self-pay' | 'split'; splitDetail: SplitDetail };
 
   getWaitingCount: () => number;
   getWaitingByExamItem: (examItemId: string) => QueueItem[];
@@ -61,6 +61,7 @@ interface QueueState {
   getCurrentMonthPackageTotal: () => number;
   getCurrentMonthSelfPayTotal: () => number;
   getPatientQuotaStatus: (patientId: string) => { remaining: number; total: number; percent: number };
+  getPatientMonthBill: (patientId: string) => { packageTotal: number; selfPayTotal: number; total: number; completedItems: QuotaRecord[]; remaining: number };
 }
 
 export const useQueueStore = create<QueueState>((set, get) => ({
@@ -82,7 +83,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
 
     get().checkAndResetPeriod();
     set({ isInitialized: true });
-    console.log('[Store] 初始化完成, 当前周期:', get().currentPeriod);
   },
 
   persist: () => {
@@ -97,9 +97,8 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     };
     try {
       Taro.setStorageSync(STORAGE_KEY, data);
-      console.log('[Store] 数据已持久化');
     } catch (e) {
-      console.error('[Store] 持久化失败:', e);
+      console.error('[Store] persist error:', e);
     }
   },
 
@@ -114,11 +113,10 @@ export const useQueueStore = create<QueueState>((set, get) => ({
           examRooms: data.examRooms || mockRooms,
           currentPeriod: data.currentPeriod || getCurrentPeriod()
         });
-        console.log('[Store] 数据已从本地存储恢复');
         return true;
       }
     } catch (e) {
-      console.error('[Store] 恢复数据失败:', e);
+      console.error('[Store] restore error:', e);
     }
     return false;
   },
@@ -128,8 +126,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     const newPeriod = getCurrentPeriod();
 
     if (currentPeriod !== newPeriod) {
-      console.log(`[Store] 周期变更: ${currentPeriod} -> ${newPeriod}, 开始重置额度`);
-
       const resetPatients = patients.map(p => ({
         ...p,
         remainingQuota: p.totalQuota
@@ -148,7 +144,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       });
 
       get().persist();
-      console.log('[Store] 新周期额度已重置');
     }
   },
 
@@ -185,7 +180,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     const newQueue = sortQueueByPriority([...queue, newItem]);
     set({ queue: newQueue });
     get().persist();
-    console.log('[Queue] 添加排队:', patient.name, examItem.name);
   },
 
   callNextForRoom: (roomId: string): QueueItem | null => {
@@ -193,21 +187,16 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     const room = examRooms.find(r => r.id === roomId);
     if (!room) return null;
 
-    if (room.status === 'busy') {
-      console.log('[Queue] 检查室忙碌中:', room.name);
-      return null;
-    }
+    if (room.status === 'busy') return null;
 
     const waitingForItem = sortQueueByPriority(
       queue.filter(q => q.examItemId === room.examItemId && q.status === 'waiting')
     );
 
-    if (waitingForItem.length === 0) {
-      console.log('[Queue] 该项目无等待患者:', room.examItemId);
-      return null;
-    }
+    if (waitingForItem.length === 0) return null;
 
     const nextItem = waitingForItem[0];
+    const now = Date.now();
 
     const newQueue = queue.map(item => {
       if (item.id === nextItem.id) {
@@ -222,7 +211,8 @@ export const useQueueStore = create<QueueState>((set, get) => ({
           ...r,
           status: 'busy' as const,
           currentPatientId: nextItem.patientId,
-          currentPatientName: nextItem.patientName
+          currentPatientName: nextItem.patientName,
+          callTime: now
         };
       }
       return r;
@@ -236,43 +226,61 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     });
     get().persist();
 
-    console.log('[Queue] 叫号:', nextItem.patientName, '到', room.name);
     return callingItem;
   },
 
   completeExam: (roomId: string) => {
-    const { queue, examRooms, patients, examItems, currentPeriod } = get();
+    const { queue, examRooms, patients, examItems, currentPeriod, quotaRecords } = get();
     const room = examRooms.find(r => r.id === roomId);
     if (!room || room.status !== 'busy') return;
 
     const callingItem = queue.find(
-      q => q.patientId === room.currentPatientId && q.examItemId === room.examItemId && q.status === 'calling'
+      q => q.patientId === room.currentPatientId &&
+           q.examItemId === room.examItemId &&
+           q.status === 'calling'
     );
 
     let updatedPatients = [...patients];
-    let newRecord: QuotaRecord | null = null;
+    let newRecords: QuotaRecord[] = [];
 
     if (callingItem) {
       const examItem = examItems.find(e => e.id === callingItem.examItemId);
       if (examItem) {
         const patient = patients.find(p => p.id === callingItem.patientId);
         if (patient) {
-          const { paymentType } = get().useQuota(callingItem.patientId, examItem.price);
+          const { paymentType, splitDetail } = get().useQuota(callingItem.patientId, examItem.price);
           updatedPatients = get().patients;
 
-          newRecord = {
+          const recordBase = {
             id: generateId(),
             patientId: callingItem.patientId,
             patientName: callingItem.patientName,
             examItemId: callingItem.examItemId,
             examItemName: callingItem.examItemName,
-            amount: examItem.price,
-            paymentType,
             date: getTodayStr(),
             time: getNowTimeStr(),
             period: currentPeriod,
             timestamp: Date.now()
           };
+
+          if (paymentType === 'split') {
+            newRecords.push({
+              ...recordBase,
+              id: generateId(),
+              amount: examItem.price,
+              paymentType: 'split',
+              packageAmount: splitDetail.packageAmount,
+              selfPayAmount: splitDetail.selfPayAmount
+            });
+          } else {
+            newRecords.push({
+              ...recordBase,
+              amount: examItem.price,
+              paymentType,
+              packageAmount: paymentType === 'package' ? examItem.price : 0,
+              selfPayAmount: paymentType === 'self-pay' ? examItem.price : 0
+            });
+          }
         }
       }
     }
@@ -290,7 +298,8 @@ export const useQueueStore = create<QueueState>((set, get) => ({
           ...r,
           status: 'idle' as const,
           currentPatientId: null,
-          currentPatientName: null
+          currentPatientName: null,
+          callTime: null
         };
       }
       return r;
@@ -300,11 +309,9 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       queue: sortQueueByPriority(newQueue),
       examRooms: newRooms,
       patients: updatedPatients,
-      quotaRecords: newRecord ? [newRecord, ...get().quotaRecords] : get().quotaRecords
+      quotaRecords: [...newRecords, ...quotaRecords]
     });
     get().persist();
-
-    console.log('[Queue] 完成检查:', room.name, room.currentPatientName);
   },
 
   skipCurrent: (roomId: string) => {
@@ -313,7 +320,9 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     if (!room || room.status !== 'busy') return;
 
     const callingItem = queue.find(
-      q => q.patientId === room.currentPatientId && q.examItemId === room.examItemId && q.status === 'calling'
+      q => q.patientId === room.currentPatientId &&
+           q.examItemId === room.examItemId &&
+           q.status === 'calling'
     );
 
     let newQueue = [...queue];
@@ -332,7 +341,8 @@ export const useQueueStore = create<QueueState>((set, get) => ({
           ...r,
           status: 'idle' as const,
           currentPatientId: null,
-          currentPatientName: null
+          currentPatientName: null,
+          callTime: null
         };
       }
       return r;
@@ -343,8 +353,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       examRooms: newRooms
     });
     get().persist();
-
-    console.log('[Queue] 跳过:', room.name, room.currentPatientName);
   },
 
   insertVip: (patientId: string, examItemId: string) => {
@@ -376,7 +384,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     const newQueue = sortQueueByPriority([...queue, newItem]);
     set({ queue: newQueue });
     get().persist();
-    console.log('[Queue] VIP插队:', patient.name, examItem.name);
   },
 
   insertUrgent: (patientId: string, examItemId: string) => {
@@ -402,7 +409,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     const newQueue = sortQueueByPriority([...queue, newItem]);
     set({ queue: newQueue });
     get().persist();
-    console.log('[Queue] 急检插队:', patient.name, examItem.name);
   },
 
   resetQuota: (patientId: string) => {
@@ -412,7 +418,6 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       )
     }));
     get().persist();
-    console.log('[Quota] 重置额度:', patientId);
   },
 
   resetAllQuota: () => {
@@ -423,30 +428,47 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       }))
     }));
     get().persist();
-    console.log('[Quota] 重置全部额度');
   },
 
   useQuota: (patientId: string, amount: number) => {
     const { patients } = get();
     const patient = patients.find(p => p.id === patientId);
-    if (!patient) return { success: false, paymentType: 'package' as const };
+    if (!patient) return { success: false, paymentType: 'package' as const, splitDetail: { packageAmount: 0, selfPayAmount: 0 } };
 
-    let paymentType: 'package' | 'self-pay' = 'package';
+    const remaining = patient.remainingQuota;
 
-    if (patient.remainingQuota >= amount) {
+    if (remaining >= amount) {
       set(state => ({
         patients: state.patients.map(p =>
           p.id === patientId ? { ...p, remainingQuota: p.remainingQuota - amount } : p
         )
       }));
-      paymentType = 'package';
-      console.log('[Quota] 套餐扣费:', patient.name, amount, '剩余:', patient.remainingQuota - amount);
-    } else {
-      paymentType = 'self-pay';
-      console.log('[Quota] 额度不足，转自费:', patient.name, amount, '剩余额度:', patient.remainingQuota);
+      return {
+        success: true,
+        paymentType: 'package' as const,
+        splitDetail: { packageAmount: amount, selfPayAmount: 0 }
+      };
     }
 
-    return { success: true, paymentType };
+    if (remaining > 0) {
+      const selfPayAmount = amount - remaining;
+      set(state => ({
+        patients: state.patients.map(p =>
+          p.id === patientId ? { ...p, remainingQuota: 0 } : p
+        )
+      }));
+      return {
+        success: true,
+        paymentType: 'split' as const,
+        splitDetail: { packageAmount: remaining, selfPayAmount }
+      };
+    }
+
+    return {
+      success: true,
+      paymentType: 'self-pay' as const,
+      splitDetail: { packageAmount: 0, selfPayAmount: amount }
+    };
   },
 
   getWaitingCount: () => {
@@ -504,14 +526,12 @@ export const useQueueStore = create<QueueState>((set, get) => ({
 
   getCurrentMonthPackageTotal: () => {
     return get().getCurrentMonthRecords()
-      .filter(r => r.paymentType === 'package')
-      .reduce((sum, r) => sum + r.amount, 0);
+      .reduce((sum, r) => sum + r.packageAmount, 0);
   },
 
   getCurrentMonthSelfPayTotal: () => {
     return get().getCurrentMonthRecords()
-      .filter(r => r.paymentType === 'self-pay')
-      .reduce((sum, r) => sum + r.amount, 0);
+      .reduce((sum, r) => sum + r.selfPayAmount, 0);
   },
 
   getPatientQuotaStatus: (patientId: string) => {
@@ -521,6 +541,20 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       remaining: patient.remainingQuota,
       total: patient.totalQuota,
       percent: patient.totalQuota > 0 ? (patient.remainingQuota / patient.totalQuota) * 100 : 0
+    };
+  },
+
+  getPatientMonthBill: (patientId: string) => {
+    const period = get().currentPeriod;
+    const patient = get().patients.find(p => p.id === patientId);
+    const records = get().quotaRecords.filter(r => r.patientId === patientId && r.period === period);
+
+    return {
+      packageTotal: records.reduce((sum, r) => sum + r.packageAmount, 0),
+      selfPayTotal: records.reduce((sum, r) => sum + r.selfPayAmount, 0),
+      total: records.reduce((sum, r) => sum + r.amount, 0),
+      completedItems: records,
+      remaining: patient?.remainingQuota ?? 0
     };
   }
 }));

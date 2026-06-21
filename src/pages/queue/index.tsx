@@ -25,28 +25,28 @@ const QueuePage: React.FC = () => {
     completeExam,
     skipCurrent,
     addToQueue,
-    patients,
-    getCurrentMonthTotal
+    patients
   } = useQueueStore();
 
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
-  const [refreshing, setRefreshing] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const waitingQueue = sortQueueByPriority(
     queue.filter(item => item.status === 'waiting')
   );
 
-  const busyRooms = getBusyRooms();
-  const idleRooms = getIdleRooms();
+  const busyRooms = getIdleRooms;
+  const idleRooms = getBusyRooms;
 
   const handleCallForRoom = (roomId: string) => {
     const room = examRooms.find(r => r.id === roomId);
     const result = callNextForRoom(roomId);
     if (result) {
-      Taro.showToast({
-        title: `叫号: ${result.patientName}`,
-        icon: 'success'
-      });
+      Taro.showToast({ title: `叫号: ${result.patientName}`, icon: 'success' });
     } else {
       const waitingCount = getWaitingByExamItem(room?.examItemId || '').length;
       Taro.showToast({
@@ -59,10 +59,7 @@ const QueuePage: React.FC = () => {
   const handleComplete = (roomId: string) => {
     const room = examRooms.find(r => r.id === roomId);
     completeExam(roomId);
-    Taro.showToast({
-      title: `${room?.name} 已完成`,
-      icon: 'success'
-    });
+    Taro.showToast({ title: `${room?.name} 已完成结算`, icon: 'success' });
   };
 
   const handleSkip = (roomId: string) => {
@@ -84,44 +81,28 @@ const QueuePage: React.FC = () => {
     Taro.showToast({ title: '取号成功', icon: 'success' });
   };
 
-  const handlePullDownRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      Taro.stopPullDownRefresh();
-    }, 800);
+  const getElapsedMinutes = (callTime: number | null): number => {
+    if (!callTime) return 0;
+    return Math.floor((now - callTime) / 60000);
   };
 
-  useEffect(() => {
-    if (idleRooms.length > 0 && !selectedRoomId) {
-      setSelectedRoomId(idleRooms[0].id);
-    }
-  }, [idleRooms, selectedRoomId]);
-
-  const getLevelTagType = (level: string) => {
-    switch (level) {
-      case 'vip': return 'vip';
-      case 'urgent': return 'urgent';
-      default: return 'normal';
-    }
+  const getEstimatedEndTime = (callTime: number | null, duration: number): string => {
+    if (!callTime) return '--:--';
+    const endTime = callTime + duration * 60000;
+    const d = new Date(endTime);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
   const getLevelText = (level: string) => {
     switch (level) {
       case 'vip': return 'VIP';
       case 'urgent': return '急检';
-      default: return '普通';
+      default: return '';
     }
   };
 
   return (
-    <ScrollView
-      className={styles.page}
-      scrollY
-      refresherEnabled
-      refresherTriggered={refreshing}
-      onRefresherRefresh={handlePullDownRefresh}
-    >
+    <ScrollView className={styles.page} scrollY>
       <View className={styles.headerSection}>
         <Text className={styles.headerTitle}>体检排队叫号</Text>
         <Text className={styles.headerSubtitle}>{dayjs().format('YYYY年MM月DD日 dddd')}</Text>
@@ -150,19 +131,23 @@ const QueuePage: React.FC = () => {
         <View className={styles.sectionHeader}>
           <Text className={styles.sectionTitle}>检查室状态</Text>
           <Text className={styles.sectionSubtitle}>
-            空闲 {idleRooms.length} / 忙碌 {busyRooms.length}
+            空闲 {examRooms.filter(r => r.status === 'idle').length} / 忙碌 {examRooms.filter(r => r.status === 'busy').length}
           </Text>
         </View>
 
         <View className={styles.roomGrid}>
           {examRooms.map(room => {
             const isBusy = room.status === 'busy';
-            const waitingCount = getWaitingByExamItem(room.examItemId).length;
+            const waitingList = getWaitingByExamItem(room.examItemId);
+            const examItem = examItems.find(e => e.id === room.examItemId);
+            const elapsed = getElapsedMinutes(room.callTime);
+            const estimatedEnd = getEstimatedEndTime(room.callTime, examItem?.duration || 10);
+            const isOverTime = elapsed > (examItem?.duration || 10);
 
             return (
               <View
                 key={room.id}
-                className={classNames(styles.roomCard, isBusy && styles.roomBusy)}
+                className={classNames(styles.roomCard, isBusy && styles.roomBusy, isOverTime && styles.roomOverTime)}
               >
                 <View className={styles.roomHeader}>
                   <Text className={styles.roomName}>{room.name}</Text>
@@ -175,23 +160,37 @@ const QueuePage: React.FC = () => {
 
                 <View className={styles.roomItem}>
                   <Text className={styles.roomItemLabel}>检查项目</Text>
-                  <Text className={styles.roomItemValue}>
-                    {examItems.find(e => e.id === room.examItemId)?.name}
-                  </Text>
+                  <Text className={styles.roomItemValue}>{examItem?.name}</Text>
                 </View>
 
                 {isBusy && room.currentPatientName ? (
-                  <View className={styles.roomPatient}>
-                    <View className={styles.roomPatientAvatar}>
-                      <Text className={styles.roomPatientAvatarText}>
-                        {room.currentPatientName.charAt(0)}
-                      </Text>
+                  <>
+                    <View className={styles.roomPatient}>
+                      <View className={styles.roomPatientAvatar}>
+                        <Text className={styles.roomPatientAvatarText}>
+                          {room.currentPatientName.charAt(0)}
+                        </Text>
+                      </View>
+                      <View className={styles.roomPatientInfo}>
+                        <Text className={styles.roomPatientName}>{room.currentPatientName}</Text>
+                        <Text className={classNames(styles.roomPatientStatus, isOverTime && styles.overtime)}>
+                          {isOverTime ? `已超时 ${elapsed - (examItem?.duration || 10)}分钟` : '正在检查中...'}
+                        </Text>
+                      </View>
                     </View>
-                    <View className={styles.roomPatientInfo}>
-                      <Text className={styles.roomPatientName}>{room.currentPatientName}</Text>
-                      <Text className={styles.roomPatientStatus}>正在检查中...</Text>
+                    <View className={styles.roomTimeInfo}>
+                      <View className={styles.roomTimeItem}>
+                        <Text className={styles.roomTimeLabel}>已用时</Text>
+                        <Text className={classNames(styles.roomTimeValue, isOverTime && styles.overtime)}>
+                          {elapsed}分钟
+                        </Text>
+                      </View>
+                      <View className={styles.roomTimeItem}>
+                        <Text className={styles.roomTimeLabel}>预计结束</Text>
+                        <Text className={styles.roomTimeValue}>{estimatedEnd}</Text>
+                      </View>
                     </View>
-                  </View>
+                  </>
                 ) : (
                   <View className={styles.roomPatient}>
                     <View className={classNames(styles.roomPatientAvatar, styles.roomPatientAvatarIdle)}>
@@ -200,9 +199,36 @@ const QueuePage: React.FC = () => {
                     <View className={styles.roomPatientInfo}>
                       <Text className={styles.roomPatientIdleText}>等待叫号</Text>
                       <Text className={styles.roomPatientIdleSub}>
-                        等待 {waitingCount} 人
+                        等待 {waitingList.length} 人
                       </Text>
                     </View>
+                  </View>
+                )}
+
+                {waitingList.length > 0 && (
+                  <View className={styles.roomWaitingList}>
+                    <Text className={styles.roomWaitingTitle}>后续等待</Text>
+                    {waitingList.slice(0, 3).map((item, idx) => (
+                      <View key={item.id} className={styles.roomWaitingItem}>
+                        <Text className={styles.roomWaitingRank}>{idx + 1}</Text>
+                        <Text className={styles.roomWaitingName}>{item.patientName}</Text>
+                        {item.patientLevel !== 'normal' && (
+                          <Text className={classNames(
+                            styles.roomWaitingLevel,
+                            item.patientLevel === 'urgent' && styles.urgent,
+                            item.patientLevel === 'vip' && styles.vip
+                          )}>
+                            {getLevelText(item.patientLevel)}
+                          </Text>
+                        )}
+                        {item.examItemType === 'fasting' && (
+                          <Text className={styles.roomWaitingFasting}>空腹</Text>
+                        )}
+                      </View>
+                    ))}
+                    {waitingList.length > 3 && (
+                      <Text className={styles.roomWaitingMore}>还有 {waitingList.length - 3} 人等待</Text>
+                    )}
                   </View>
                 )}
 
@@ -213,7 +239,7 @@ const QueuePage: React.FC = () => {
                         className={classNames(styles.roomBtn, styles.roomBtnSuccess)}
                         onClick={() => handleComplete(room.id)}
                       >
-                        完成
+                        完成结算
                       </Button>
                       <Button
                         className={classNames(styles.roomBtn, styles.roomBtnOutline)}
@@ -226,9 +252,9 @@ const QueuePage: React.FC = () => {
                     <Button
                       className={classNames(styles.roomBtn, styles.roomBtnPrimary)}
                       onClick={() => handleCallForRoom(room.id)}
-                      disabled={waitingCount === 0}
+                      disabled={waitingList.length === 0}
                     >
-                      {waitingCount > 0 ? '叫下一位' : '暂无等待'}
+                      {waitingList.length > 0 ? '叫下一位' : '暂无等待'}
                     </Button>
                   )}
                 </View>
