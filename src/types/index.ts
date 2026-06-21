@@ -80,3 +80,15 @@ export interface ExamRoom {
   currentPatientName: string | null;
   callTime: number | null;
 }
+
+export interface ItemLoadStat {
+  examItemId: string;
+  examItemName: string;
+  waitingCount: number;
+  busyRoomCount: number;
+  idleRoomCount: number;
+  totalRoomCount: number;
+  avgDuration: number;
+  estimatedWaitMinutes: number;
+  estimatedFinishTime: string;
+}

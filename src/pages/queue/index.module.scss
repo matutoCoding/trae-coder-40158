@@ -441,3 +441,266 @@
     transform: scale(0.98);
   }
 }
+
+.viewTabs {
+  display: flex;
+  margin: -30rpx $page-padding $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  padding: 6rpx;
+  position: relative;
+  z-index: 5;
+  box-shadow: $shadow-card;
+}
+
+.viewTab {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-button;
+  transition: all $transition-base;
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    box-shadow: 0 4rpx 12rpx rgba(15, 198, 194, 0.25);
+
+    .viewTabText {
+      color: $color-text-white;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.viewTabText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.loadGrid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.loadCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.loadCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.loadCardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.loadCardDuration {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.loadStatsRow {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.loadStatItem {
+  flex: 1;
+  text-align: center;
+  padding: $spacing-sm 0;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+}
+
+.loadStatValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  display: block;
+  margin-bottom: 4rpx;
+
+  &.waiting {
+    color: $color-warning;
+  }
+
+  &.busy {
+    color: $color-primary;
+  }
+
+  &.idle {
+    color: $color-success;
+  }
+}
+
+.loadStatLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.loadProgress {
+  height: 8rpx;
+  background: $color-bg-page;
+  border-radius: $radius-round;
+  overflow: hidden;
+  margin-bottom: $spacing-md;
+}
+
+.loadProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-base;
+}
+
+.loadEstimate {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.loadEstimateItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loadEstimateLabel {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.loadEstimateValue {
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.loadIdleRooms {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}
+
+.loadIdleRoomsTitle {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+  display: block;
+}
+
+.loadIdleRoomList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.loadIdleRoomChip {
+  padding: 6rpx $spacing-sm;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: $radius-xs;
+}
+
+.loadIdleRoomText {
+  font-size: 20rpx;
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}
+
+.actionSheetMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.actionSheet {
+  width: 100%;
+  background: $color-bg-page;
+  border-radius: $radius-xl $radius-xl 0 0;
+  padding: $spacing-sm;
+  padding-bottom: calc(#{$spacing-sm} + env(safe-area-inset-bottom));
+}
+
+.actionSheetTitle {
+  text-align: center;
+  padding: $spacing-md 0;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  border-bottom: 1rpx solid $color-divider;
+  margin-bottom: $spacing-xs;
+}
+
+.actionSheetItem {
+  @include button-reset;
+  width: 100%;
+  height: 88rpx;
+  border-radius: $radius-button;
+  background: $color-bg-card;
+  color: $color-text-primary;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-xs;
+
+  &.danger {
+    color: $color-error;
+  }
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.actionSheetEmpty {
+  text-align: center;
+  padding: $spacing-lg 0;
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}
+
+.actionSheetCancel {
+  @include button-reset;
+  width: 100%;
+  height: 88rpx;
+  border-radius: $radius-button;
+  background: $color-bg-card;
+  color: $color-text-secondary;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: $spacing-xs;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.roomBtnWarning {
+  background: $color-warning;
+  color: $color-text-white;
+}

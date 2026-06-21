@@ -370,3 +370,302 @@
   font-size: $font-size-md;
   color: $color-text-tertiary;
 }
+
+.periodNav {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  position: relative;
+  z-index: 1;
+  margin-bottom: $spacing-md;
+}
+
+.periodArrow {
+  @include button-reset;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 255, 255, 0.15);
+  color: $color-text-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.disabled {
+    opacity: 0.4;
+  }
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.periodInfo {
+  flex: 1;
+}
+
+.periodTabs {
+  display: flex;
+  gap: $spacing-sm;
+  position: relative;
+  z-index: 1;
+  overflow-x: auto;
+  padding-bottom: 4rpx;
+}
+
+.periodTab {
+  flex-shrink: 0;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-button;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-text-white;
+
+    .periodTabText {
+      color: $color-primary;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.periodTabText {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.actionBar {
+  margin: 0 $page-padding $spacing-md;
+}
+
+.primaryBtn {
+  @include button-reset;
+  width: 100%;
+  height: 84rpx;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(15, 198, 194, 0.3);
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.checklistModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.checklistContent {
+  width: 100%;
+  max-height: 85vh;
+  background: $color-bg-page;
+  border-radius: $radius-xl $radius-xl 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.checklistHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+  background: $color-bg-card;
+  border-radius: $radius-xl $radius-xl 0 0;
+}
+
+.checklistTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.closeBtn {
+  @include button-reset;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: $color-bg-page;
+  color: $color-text-tertiary;
+  font-size: $font-size-xl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:active {
+    background: $color-divider;
+  }
+}
+
+.checklistBody {
+  flex: 1;
+  padding: $spacing-md $page-padding;
+  overflow-y: auto;
+}
+
+.checklistSection {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.checklistSectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.checklistRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-xs 0;
+}
+
+.checklistLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.checklistValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+
+  &.bold {
+    font-weight: $font-weight-semibold;
+  }
+
+  &.packageColor {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+
+  &.selfPayColor {
+    color: $color-selfpay;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.checklistItem {
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.checklistItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.checklistItemName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.checklistItemAmount {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.checklistItemMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.checklistItemDate {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.checklistItemSplit {
+  padding: $spacing-xs $spacing-sm;
+  background: rgba(255, 125, 0, 0.06);
+  border-radius: $radius-xs;
+}
+
+.splitText {
+  font-size: 22rpx;
+  color: $color-text-secondary;
+}
+
+.checklistFooter {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-md $page-padding;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background: $color-bg-card;
+  border-top: 1rpx solid $color-divider;
+}
+
+.checklistBtnOutline {
+  @include button-reset;
+  flex: 1;
+  height: 84rpx;
+  border-radius: $radius-button;
+  border: 2rpx solid $color-divider;
+  background: $color-bg-card;
+  color: $color-text-secondary;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:active {
+    background: $color-bg-page;
+  }
+}
+
+.checklistBtnPrimary {
+  @include button-reset;
+  flex: 1;
+  height: 84rpx;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:active {
+    opacity: 0.9;
+  }
+}

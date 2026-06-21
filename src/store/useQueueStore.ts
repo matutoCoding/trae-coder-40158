@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import Taro from '@tarojs/taro';
-import type { QueueItem, Patient, QuotaRecord, ExamRoom, PatientLevel, ExamItem, SplitDetail } from '@/types';
+import type { QueueItem, Patient, QuotaRecord, ExamRoom, PatientLevel, ExamItem, SplitDetail, ItemLoadStat } from '@/types';
 import { initialQueue, patients as mockPatients, quotaRecords as mockRecords, examRooms as mockRooms, examItems as mockExamItems } from '@/data/mockData';
 import { sortQueueByPriority, generateId } from '@/utils';
 
@@ -38,8 +38,11 @@ interface QueueState {
 
   addToQueue: (patientId: string, examItemId: string) => void;
   callNextForRoom: (roomId: string) => QueueItem | null;
-  completeExam: (roomId: string) => void;
+  completeExam: (roomId: string) => { success: boolean; record?: QuotaRecord };
   skipCurrent: (roomId: string) => void;
+  cancelExam: (roomId: string) => void;
+  transferRoom: (fromRoomId: string, toRoomId: string) => boolean;
+  recallSkipped: (queueItemId: string, roomId?: string) => boolean;
 
   insertVip: (patientId: string, examItemId: string) => void;
   insertUrgent: (patientId: string, examItemId: string) => void;
@@ -53,15 +56,18 @@ interface QueueState {
   getCurrentCallingByRoom: (roomId: string) => QueueItem | null;
   getIdleRooms: () => ExamRoom[];
   getBusyRooms: () => ExamRoom[];
+  getRoomsByExamItem: (examItemId: string) => ExamRoom[];
   getFastingCount: () => number;
   getVipCount: () => number;
   getUrgentCount: () => number;
+  getSkippedByExamItem: (examItemId: string) => QueueItem[];
   getCurrentMonthRecords: () => QuotaRecord[];
   getCurrentMonthTotal: () => number;
   getCurrentMonthPackageTotal: () => number;
   getCurrentMonthSelfPayTotal: () => number;
   getPatientQuotaStatus: (patientId: string) => { remaining: number; total: number; percent: number };
-  getPatientMonthBill: (patientId: string) => { packageTotal: number; selfPayTotal: number; total: number; completedItems: QuotaRecord[]; remaining: number };
+  getPatientMonthBill: (patientId: string, period?: string) => { packageTotal: number; selfPayTotal: number; total: number; completedItems: QuotaRecord[]; remaining: number };
+  getItemLoadStats: () => ItemLoadStat[];
 }
 
 export const useQueueStore = create<QueueState>((set, get) => ({
@@ -232,58 +238,58 @@ export const useQueueStore = create<QueueState>((set, get) => ({
   completeExam: (roomId: string) => {
     const { queue, examRooms, patients, examItems, currentPeriod, quotaRecords } = get();
     const room = examRooms.find(r => r.id === roomId);
-    if (!room || room.status !== 'busy') return;
+    if (!room || room.status !== 'busy' || !room.currentPatientId) {
+      return { success: false };
+    }
+
+    const patientId = room.currentPatientId;
+    const patientName = room.currentPatientName;
+    const examItemId = room.examItemId;
+    const examItem = examItems.find(e => e.id === examItemId);
+    if (!examItem) return { success: false };
+
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return { success: false };
+
+    const { paymentType, splitDetail } = get().useQuota(patientId, examItem.price);
+    const updatedPatients = get().patients;
+
+    const recordBase = {
+      id: generateId(),
+      patientId,
+      patientName: patientName || patient.name,
+      examItemId,
+      examItemName: examItem.name,
+      date: getTodayStr(),
+      time: getNowTimeStr(),
+      period: currentPeriod,
+      timestamp: Date.now()
+    };
+
+    let newRecord: QuotaRecord;
+    if (paymentType === 'split') {
+      newRecord = {
+        ...recordBase,
+        amount: examItem.price,
+        paymentType: 'split',
+        packageAmount: splitDetail.packageAmount,
+        selfPayAmount: splitDetail.selfPayAmount
+      };
+    } else {
+      newRecord = {
+        ...recordBase,
+        amount: examItem.price,
+        paymentType,
+        packageAmount: paymentType === 'package' ? examItem.price : 0,
+        selfPayAmount: paymentType === 'self-pay' ? examItem.price : 0
+      };
+    }
 
     const callingItem = queue.find(
-      q => q.patientId === room.currentPatientId &&
-           q.examItemId === room.examItemId &&
+      q => q.patientId === patientId &&
+           q.examItemId === examItemId &&
            q.status === 'calling'
     );
-
-    let updatedPatients = [...patients];
-    let newRecords: QuotaRecord[] = [];
-
-    if (callingItem) {
-      const examItem = examItems.find(e => e.id === callingItem.examItemId);
-      if (examItem) {
-        const patient = patients.find(p => p.id === callingItem.patientId);
-        if (patient) {
-          const { paymentType, splitDetail } = get().useQuota(callingItem.patientId, examItem.price);
-          updatedPatients = get().patients;
-
-          const recordBase = {
-            id: generateId(),
-            patientId: callingItem.patientId,
-            patientName: callingItem.patientName,
-            examItemId: callingItem.examItemId,
-            examItemName: callingItem.examItemName,
-            date: getTodayStr(),
-            time: getNowTimeStr(),
-            period: currentPeriod,
-            timestamp: Date.now()
-          };
-
-          if (paymentType === 'split') {
-            newRecords.push({
-              ...recordBase,
-              id: generateId(),
-              amount: examItem.price,
-              paymentType: 'split',
-              packageAmount: splitDetail.packageAmount,
-              selfPayAmount: splitDetail.selfPayAmount
-            });
-          } else {
-            newRecords.push({
-              ...recordBase,
-              amount: examItem.price,
-              paymentType,
-              packageAmount: paymentType === 'package' ? examItem.price : 0,
-              selfPayAmount: paymentType === 'self-pay' ? examItem.price : 0
-            });
-          }
-        }
-      }
-    }
 
     const newQueue = queue.map(item => {
       if (callingItem && item.id === callingItem.id) {
@@ -309,9 +315,11 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       queue: sortQueueByPriority(newQueue),
       examRooms: newRooms,
       patients: updatedPatients,
-      quotaRecords: [...newRecords, ...quotaRecords]
+      quotaRecords: [newRecord, ...quotaRecords]
     });
     get().persist();
+
+    return { success: true, record: newRecord };
   },
 
   skipCurrent: (roomId: string) => {
@@ -353,6 +361,158 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       examRooms: newRooms
     });
     get().persist();
+  },
+
+  cancelExam: (roomId: string) => {
+    const { queue, examRooms } = get();
+    const room = examRooms.find(r => r.id === roomId);
+    if (!room || room.status !== 'busy' || !room.currentPatientId) return;
+
+    const callingItem = queue.find(
+      q => q.patientId === room.currentPatientId &&
+           q.examItemId === room.examItemId &&
+           q.status === 'calling'
+    );
+
+    let newQueue = [...queue];
+    if (callingItem) {
+      newQueue = queue.map(item => {
+        if (item.id === callingItem.id) {
+          return { ...item, status: 'waiting' as const };
+        }
+        return item;
+      });
+    } else {
+      const patient = get().patients.find(p => p.id === room.currentPatientId);
+      const examItem = get().examItems.find(e => e.id === room.examItemId);
+      if (patient && examItem) {
+        const priorityMap: Record<PatientLevel, number> = {
+          normal: 3,
+          vip: 2,
+          urgent: 1
+        };
+        const newItem: QueueItem = {
+          id: generateId(),
+          patientId: patient.id,
+          patientName: patient.name,
+          patientLevel: patient.level,
+          examItemId: examItem.id,
+          examItemName: examItem.name,
+          examItemType: examItem.type,
+          status: 'waiting',
+          priority: priorityMap[patient.level],
+          queueTime: getNowTimeStr(),
+          estimatedTime: examItem.duration
+        };
+        newQueue = sortQueueByPriority([...queue, newItem]);
+      }
+    }
+
+    const newRooms = examRooms.map(r => {
+      if (r.id === roomId) {
+        return {
+          ...r,
+          status: 'idle' as const,
+          currentPatientId: null,
+          currentPatientName: null,
+          callTime: null
+        };
+      }
+      return r;
+    });
+
+    set({
+      queue: newQueue,
+      examRooms: newRooms
+    });
+    get().persist();
+  },
+
+  transferRoom: (fromRoomId: string, toRoomId: string): boolean => {
+    const { examRooms } = get();
+    const fromRoom = examRooms.find(r => r.id === fromRoomId);
+    const toRoom = examRooms.find(r => r.id === toRoomId);
+
+    if (!fromRoom || !toRoom) return false;
+    if (fromRoom.status !== 'busy' || toRoom.status !== 'idle') return false;
+    if (fromRoom.examItemId !== toRoom.examItemId) return false;
+
+    const newRooms = examRooms.map(r => {
+      if (r.id === fromRoomId) {
+        return {
+          ...r,
+          status: 'idle' as const,
+          currentPatientId: null,
+          currentPatientName: null,
+          callTime: null
+        };
+      }
+      if (r.id === toRoomId) {
+        return {
+          ...r,
+          status: 'busy' as const,
+          currentPatientId: fromRoom.currentPatientId,
+          currentPatientName: fromRoom.currentPatientName,
+          callTime: fromRoom.callTime
+        };
+      }
+      return r;
+    });
+
+    set({ examRooms: newRooms });
+    get().persist();
+    return true;
+  },
+
+  recallSkipped: (queueItemId: string, roomId?: string): boolean => {
+    const { queue, examRooms } = get();
+    const skippedItem = queue.find(q => q.id === queueItemId && q.status === 'skipped');
+    if (!skippedItem) return false;
+
+    if (roomId) {
+      const room = examRooms.find(r => r.id === roomId);
+      if (!room || room.status !== 'idle' || room.examItemId !== skippedItem.examItemId) {
+        return false;
+      }
+
+      const newQueue = queue.map(item => {
+        if (item.id === queueItemId) {
+          return { ...item, status: 'calling' as const };
+        }
+        return item;
+      });
+
+      const newRooms = examRooms.map(r => {
+        if (r.id === roomId) {
+          return {
+            ...r,
+            status: 'busy' as const,
+            currentPatientId: skippedItem.patientId,
+            currentPatientName: skippedItem.patientName,
+            callTime: Date.now()
+          };
+        }
+        return r;
+      });
+
+      set({
+        queue: sortQueueByPriority(newQueue),
+        examRooms: newRooms
+      });
+      get().persist();
+      return true;
+    }
+
+    const newQueue = queue.map(item => {
+      if (item.id === queueItemId) {
+        return { ...item, status: 'waiting' as const };
+      }
+      return item;
+    });
+
+    set({ queue: sortQueueByPriority(newQueue) });
+    get().persist();
+    return true;
   },
 
   insertVip: (patientId: string, examItemId: string) => {
@@ -503,6 +663,16 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     return get().examRooms.filter(r => r.status === 'busy');
   },
 
+  getRoomsByExamItem: (examItemId: string) => {
+    return get().examRooms.filter(r => r.examItemId === examItemId);
+  },
+
+  getSkippedByExamItem: (examItemId: string) => {
+    return get().queue.filter(
+      item => item.examItemId === examItemId && item.status === 'skipped'
+    );
+  },
+
   getFastingCount: () => {
     return get().queue.filter(item => item.status === 'waiting' && item.examItemType === 'fasting').length;
   },
@@ -544,10 +714,10 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     };
   },
 
-  getPatientMonthBill: (patientId: string) => {
-    const period = get().currentPeriod;
+  getPatientMonthBill: (patientId: string, period?: string) => {
+    const targetPeriod = period || get().currentPeriod;
     const patient = get().patients.find(p => p.id === patientId);
-    const records = get().quotaRecords.filter(r => r.patientId === patientId && r.period === period);
+    const records = get().quotaRecords.filter(r => r.patientId === patientId && r.period === targetPeriod);
 
     return {
       packageTotal: records.reduce((sum, r) => sum + r.packageAmount, 0),
@@ -556,5 +726,56 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       completedItems: records,
       remaining: patient?.remainingQuota ?? 0
     };
+  },
+
+  getItemLoadStats: (): ItemLoadStat[] => {
+    const { examItems, examRooms, queue } = get();
+    const now = Date.now();
+
+    return examItems.map(item => {
+      const rooms = examRooms.filter(r => r.examItemId === item.id);
+      const busyRooms = rooms.filter(r => r.status === 'busy');
+      const idleRooms = rooms.filter(r => r.status === 'idle');
+      const waitingList = sortQueueByPriority(
+        queue.filter(q => q.examItemId === item.id && q.status === 'waiting')
+      );
+
+      let estimatedWaitMinutes = 0;
+      let estimatedFinishTime = '--:--';
+
+      if (waitingList.length > 0 && rooms.length > 0) {
+        const waitPerPerson = item.duration / Math.max(1, rooms.length);
+        estimatedWaitMinutes = Math.ceil(waitingList.length * waitPerPerson);
+
+        let earliestFreeTime = now;
+        if (busyRooms.length > 0) {
+          const remainingTimes = busyRooms.map(room => {
+            if (!room.callTime) return 0;
+            const elapsed = (now - room.callTime) / 60000;
+            const remaining = Math.max(0, item.duration - elapsed);
+            return remaining;
+          });
+          earliestFreeTime = now + Math.min(...remainingTimes) * 60000;
+        }
+
+        const finishTime = earliestFreeTime + estimatedWaitMinutes * 60000;
+        const d = new Date(finishTime);
+        estimatedFinishTime = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+      } else if (rooms.length > 0 && idleRooms.length > 0) {
+        estimatedFinishTime = '随到随检';
+      }
+
+      return {
+        examItemId: item.id,
+        examItemName: item.name,
+        waitingCount: waitingList.length,
+        busyRoomCount: busyRooms.length,
+        idleRoomCount: idleRooms.length,
+        totalRoomCount: rooms.length,
+        avgDuration: item.duration,
+        estimatedWaitMinutes,
+        estimatedFinishTime
+      };
+    });
   }
 }));
