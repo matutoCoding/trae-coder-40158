@@ -51,7 +51,9 @@ export interface QuotaRecord {
   amount: number;
   paymentType: PaymentType;
   date: string;
+  time: string;
   period: string;
+  timestamp: number;
 }
 
 export interface PackageQuota {

@@ -51,125 +51,19 @@
   z-index: 1;
 }
 
-.currentCalling {
-  margin: -40rpx $page-padding $spacing-lg;
-  background: $color-bg-card;
-  border-radius: $radius-xl;
-  padding: $spacing-xl;
-  box-shadow: $shadow-float;
-  position: relative;
-  z-index: 2;
-}
-
-.callingLabel {
-  font-size: $font-size-sm;
-  color: $color-text-tertiary;
-  margin-bottom: $spacing-sm;
-  display: block;
-}
-
-.callingPatient {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  margin-bottom: $spacing-md;
-}
-
-.callingAvatar {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: $radius-round;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.callingAvatarText {
-  font-size: 44rpx;
-  font-weight: $font-weight-bold;
-  color: $color-text-white;
-}
-
-.callingInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.callingName {
-  font-size: $font-size-xxl;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-  margin-bottom: 6rpx;
-  display: block;
-}
-
-.callingItem {
-  font-size: $font-size-md;
-  color: $color-text-secondary;
-  display: block;
-}
-
-.callingTags {
-  display: flex;
-  gap: $spacing-sm;
-  flex-wrap: wrap;
-}
-
-.callingActions {
-  display: flex;
-  gap: $spacing-md;
-  margin-top: $spacing-lg;
-}
-
-.actionBtn {
-  @include button-reset;
-  flex: 1;
-  height: $button-height-md;
-  border-radius: $radius-button;
-  font-size: $font-size-md;
-  font-weight: $font-weight-medium;
-  transition: all $transition-base;
-
-  &:active {
-    opacity: 0.9;
-    transform: scale(0.98);
-  }
-
-  &.primary {
-    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
-    color: $color-text-white;
-  }
-
-  &.success {
-    background: $color-success;
-    color: $color-text-white;
-  }
-
-  &.warning {
-    background: $color-warning;
-    color: $color-text-white;
-  }
-
-  &.outline {
-    background: transparent;
-    border: 2rpx solid $color-border;
-    color: $color-text-secondary;
-  }
-}
-
 .statsSection {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: $spacing-sm;
-  margin: 0 $page-padding $spacing-lg;
+  margin: -30rpx $page-padding $spacing-md;
+  position: relative;
+  z-index: 2;
 }
 
 .statItem {
   background: $color-bg-card;
   border-radius: $radius-md;
-  padding: $spacing-md $spacing-sm;
+  padding: $spacing-md $spacing-xs;
   text-align: center;
   box-shadow: $shadow-card;
 }
@@ -204,8 +98,8 @@
   display: block;
 }
 
-.queueSection {
-  margin: 0 $page-padding;
+.section {
+  margin: 0 $page-padding $spacing-lg;
 }
 
 .sectionHeader {
@@ -221,9 +115,176 @@
   color: $color-text-primary;
 }
 
+.sectionSubtitle {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
 .sectionCount {
   font-size: $font-size-sm;
   color: $color-text-tertiary;
+}
+
+.roomGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.roomCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+  border: 2rpx solid transparent;
+
+  &.roomBusy {
+    border-color: $color-primary;
+    background: linear-gradient(180deg, rgba(15, 198, 194, 0.05) 0%, $color-bg-card 30%);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.roomHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.roomName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.roomItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.roomItemLabel {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.roomItemValue {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  @include text-ellipsis;
+  max-width: 180rpx;
+}
+
+.roomPatient {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.roomPatientAvatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.roomPatientAvatarIdle {
+    background: $color-bg-hover;
+  }
+}
+
+.roomPatientAvatarText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+
+  .roomPatientAvatarIdle & {
+    color: $color-text-tertiary;
+  }
+}
+
+.roomPatientInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.roomPatientName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  @include text-ellipsis;
+}
+
+.roomPatientStatus {
+  font-size: 22rpx;
+  color: $color-primary;
+  display: block;
+}
+
+.roomPatientIdleText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  display: block;
+}
+
+.roomPatientIdleSub {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.roomActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.roomBtn {
+  @include button-reset;
+  flex: 1;
+  height: 56rpx;
+  border-radius: $radius-button;
+  font-size: 24rpx;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+  }
+
+  &.roomBtnPrimary {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    color: $color-text-white;
+  }
+
+  &.roomBtnSuccess {
+    background: $color-success;
+    color: $color-text-white;
+  }
+
+  &.roomBtnOutline {
+    background: transparent;
+    border: 2rpx solid $color-border;
+    color: $color-text-secondary;
+  }
 }
 
 .emptyState {
@@ -245,14 +306,12 @@
   padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
   background: $color-bg-card;
   box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
-  display: flex;
-  gap: $spacing-md;
   z-index: 10;
 }
 
 .takeNumberBtn {
   @include button-reset;
-  flex: 1;
+  width: 100%;
   height: $button-height-lg;
   border-radius: $radius-button;
   background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);

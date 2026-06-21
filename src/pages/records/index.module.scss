@@ -258,3 +258,124 @@
   font-size: $font-size-sm;
   color: $color-text-secondary;
 }
+
+.section {
+  margin: 0 $page-padding $spacing-md;
+}
+
+.selfPayTipCard {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  background: rgba(255, 125, 0, 0.08);
+  border: 1rpx solid rgba(255, 125, 0, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+}
+
+.tipIcon {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: $radius-round;
+  background: $color-selfpay;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tipIconText {
+  font-size: 22rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.tipText {
+  font-size: $font-size-sm;
+  color: $color-selfpay;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.summaryStatDivider {
+  width: 1rpx;
+  height: 40rpx;
+  background: rgba(255, 255, 255, 0.3);
+  align-self: center;
+}
+
+.summaryStatItem {
+  & .package {
+    color: $color-text-white;
+  }
+  & .selfPay {
+    color: #fff3e0;
+  }
+}
+
+.dateGroupLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.dateGroupCount {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  background: $color-bg-secondary;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-sm;
+}
+
+.dateGroupRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+}
+
+.dateGroupBreakdown {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+.dateGroupPackage {
+  font-size: 20rpx;
+  color: $color-primary;
+}
+
+.dateGroupSelfPay {
+  font-size: 20rpx;
+  color: $color-selfpay;
+}
+
+.recordPatientInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.recordTime {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.recordAmountWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6rpx;
+}
+
+.avatarSelfPay {
+  background: linear-gradient(135deg, $color-selfpay 0%, #ff9a3d 100%);
+}
+
+.emptyDesc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+  display: block;
+}

@@ -12,20 +12,34 @@ import { formatCurrency } from '@/utils';
 type FilterType = 'all' | 'low' | 'zero';
 
 const QuotaPage: React.FC = () => {
-  const { patients, resetQuota, quotaRecords } = useQueueStore();
+  const {
+    patients,
+    currentPeriod,
+    resetQuota,
+    resetAllQuota,
+    getCurrentMonthTotal,
+    getCurrentMonthPackageTotal,
+    getCurrentMonthSelfPayTotal,
+    getCurrentMonthRecords
+  } = useQueueStore();
+
   const [filter, setFilter] = useState<FilterType>('all');
 
   const totalQuota = useMemo(() => {
     return patients.reduce((sum, p) => sum + p.totalQuota, 0);
   }, [patients]);
 
-  const usedQuota = useMemo(() => {
-    return patients.reduce((sum, p) => sum + (p.totalQuota - p.remainingQuota), 0);
-  }, [patients]);
-
-  const remainingQuota = useMemo(() => {
+  const totalRemaining = useMemo(() => {
     return patients.reduce((sum, p) => sum + p.remainingQuota, 0);
   }, [patients]);
+
+  const totalUsed = useMemo(() => {
+    return totalQuota - totalRemaining;
+  }, [totalQuota, totalRemaining]);
+
+  const currentMonthTotal = getCurrentMonthTotal();
+  const currentMonthPackage = getCurrentMonthPackageTotal();
+  const currentMonthSelfPay = getCurrentMonthSelfPayTotal();
 
   const lowQuotaCount = useMemo(() => {
     return patients.filter(p => p.remainingQuota > 0 && p.remainingQuota / p.totalQuota < 0.2).length;
@@ -34,12 +48,6 @@ const QuotaPage: React.FC = () => {
   const zeroQuotaCount = useMemo(() => {
     return patients.filter(p => p.remainingQuota <= 0).length;
   }, [patients]);
-
-  const selfPayTotal = useMemo(() => {
-    return quotaRecords
-      .filter(r => r.paymentType === 'self-pay')
-      .reduce((sum, r) => sum + r.amount, 0);
-  }, [quotaRecords]);
 
   const filteredPatients = useMemo(() => {
     switch (filter) {
@@ -52,15 +60,20 @@ const QuotaPage: React.FC = () => {
     }
   }, [patients, filter]);
 
+  const periodLabel = useMemo(() => {
+    const [year, month] = currentPeriod.split('-');
+    return `${year}年${parseInt(month)}月`;
+  }, [currentPeriod]);
+
   const handleResetAll = () => {
     Taro.showModal({
       title: '确认重置',
-      content: '确定要重置所有患者的本月额度吗？重置后额度将恢复至套餐总额。',
+      content: `确定要重置所有患者的${periodLabel}额度吗？重置后额度将恢复至套餐总额。`,
       confirmText: '确认重置',
       confirmColor: '#0fc6c2',
       success: (res) => {
         if (res.confirm) {
-          patients.forEach(p => resetQuota(p.id));
+          resetAllQuota();
           Taro.showToast({ title: '额度已重置', icon: 'success' });
         }
       }
@@ -70,7 +83,7 @@ const QuotaPage: React.FC = () => {
   const handleResetPatient = (patientId: string, patientName: string) => {
     Taro.showModal({
       title: '确认重置',
-      content: `确定要重置 ${patientName} 的本月额度吗？`,
+      content: `确定要重置 ${patientName} 的${periodLabel}额度吗？`,
       confirmText: '确认重置',
       confirmColor: '#0fc6c2',
       success: (res) => {
@@ -94,16 +107,16 @@ const QuotaPage: React.FC = () => {
   return (
     <ScrollView className={styles.page} scrollY>
       <View className={styles.headerCard}>
-        <Text className={styles.headerTitle}>本月总剩余额度</Text>
-        <Text className={styles.headerAmount}>{formatCurrency(remainingQuota)}</Text>
+        <Text className={styles.headerTitle}>{periodLabel} 剩余总额度</Text>
+        <Text className={styles.headerAmount}>{formatCurrency(totalRemaining)}</Text>
         <View className={styles.headerInfo}>
           <View className={styles.headerInfoItem}>
             <Text className={styles.headerInfoLabel}>总额度</Text>
             <Text className={styles.headerInfoValue}>{formatCurrency(totalQuota)}</Text>
           </View>
           <View className={styles.headerInfoItem}>
-            <Text className={styles.headerInfoLabel}>已使用</Text>
-            <Text className={styles.headerInfoValue}>{formatCurrency(usedQuota)}</Text>
+            <Text className={styles.headerInfoLabel}>已用额度</Text>
+            <Text className={styles.headerInfoValue}>{formatCurrency(totalUsed)}</Text>
           </View>
           <View className={styles.headerInfoItem}>
             <Text className={styles.headerInfoLabel}>重置周期</Text>
@@ -127,15 +140,15 @@ const QuotaPage: React.FC = () => {
         </View>
       </View>
 
-      {(zeroQuotaCount > 0 || selfPayTotal > 0) && (
+      {currentMonthSelfPay > 0 && (
         <View className={styles.section}>
           <View className={styles.selfPayCard}>
             <View className={styles.selfPayHeader}>
-              <Text className={styles.selfPayTitle}>自费金额统计</Text>
-              <Text className={styles.selfPayAmount}>{formatCurrency(selfPayTotal)}</Text>
+              <Text className={styles.selfPayTitle}>本月自费金额</Text>
+              <Text className={styles.selfPayAmount}>{formatCurrency(currentMonthSelfPay)}</Text>
             </View>
             <Text className={styles.selfPayDesc}>
-              额度用完后自动转为自费，共 {quotaRecords.filter(r => r.paymentType === 'self-pay').length} 笔自费记录
+              套餐额度用完后自动转为自费，本月共 {getCurrentMonthRecords().filter(r => r.paymentType === 'self-pay').length} 笔自费记录
             </Text>
           </View>
         </View>
@@ -156,7 +169,7 @@ const QuotaPage: React.FC = () => {
 
       <View className={styles.section}>
         <View className={styles.sectionHeader}>
-          <Text className={styles.sectionTitle}>套餐额度</Text>
+          <Text className={styles.sectionTitle}>套餐额度概览</Text>
           <Button className={styles.resetBtn} onClick={handleResetAll}>
             全部重置
           </Button>
@@ -165,18 +178,19 @@ const QuotaPage: React.FC = () => {
         <View className={styles.packageList}>
           {packageQuotas.map(pkg => {
             const pkgPatients = patients.filter(p => p.packageName === pkg.packageName);
-            const pkgUsed = pkgPatients.reduce((sum, p) => sum + (p.totalQuota - p.remainingQuota), 0);
+            const pkgRemaining = pkgPatients.reduce((sum, p) => sum + p.remainingQuota, 0);
             const pkgTotal = pkgPatients.reduce((sum, p) => sum + p.totalQuota, 0);
+            const pkgUsed = pkgTotal - pkgRemaining;
             const percent = pkgTotal > 0 ? (pkgUsed / pkgTotal) * 100 : 0;
 
             return (
               <View key={pkg.id} className={styles.packageCard}>
                 <View className={styles.packageHeader}>
                   <Text className={styles.packageName}>{pkg.packageName}</Text>
-                  <Text className={styles.packagePeriod}>{pkg.period}</Text>
+                  <StatusTag type="package" text={pkg.period} size="sm" />
                 </View>
                 <View className={styles.packageQuotaInfo}>
-                  <Text className={styles.packageQuotaLabel}>已使用 / 总额度</Text>
+                  <Text className={styles.packageQuotaLabel}>已用 / 总额度</Text>
                   <Text className={styles.packageQuotaValue}>
                     {formatCurrency(pkgUsed)} / {formatCurrency(pkgTotal)}
                   </Text>
@@ -199,7 +213,7 @@ const QuotaPage: React.FC = () => {
       </View>
 
       <View className={styles.section}>
-        <Text className={styles.patientSectionTitle}>患者额度</Text>
+        <Text className={styles.patientSectionTitle}>患者额度明细</Text>
 
         <View className={styles.filterTabs}>
           {(['all', 'low', 'zero'] as FilterType[]).map(type => (

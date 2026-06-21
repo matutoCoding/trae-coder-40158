@@ -1,16 +1,22 @@
 import React, { useEffect } from 'react';
 import { useDidShow, useDidHide } from '@tarojs/taro';
-// 全局样式
 import './app.scss';
+import { useQueueStore } from '@/store/useQueueStore';
 
 function App(props) {
-  // 可以使用所有的 React Hooks
-  useEffect(() => {});
+  const initStore = useQueueStore(state => state.initStore);
+  const checkAndResetPeriod = useQueueStore(state => state.checkAndResetPeriod);
 
-  // 对应 onShow
-  useDidShow(() => {});
+  useEffect(() => {
+    initStore();
+    console.log('[App] 应用启动');
+  }, [initStore]);
 
-  // 对应 onHide
+  useDidShow(() => {
+    checkAndResetPeriod();
+    console.log('[App] 页面显示，检查周期');
+  });
+
   useDidHide(() => {});
 
   return props.children;

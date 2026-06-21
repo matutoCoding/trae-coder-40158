@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
@@ -6,43 +6,67 @@ import classNames from 'classnames';
 import { useQueueStore } from '@/store/useQueueStore';
 import QueueCard from '@/components/QueueCard';
 import StatusTag from '@/components/StatusTag';
-import { sortQueueByPriority } from '@/utils';
+import { sortQueueByPriority, formatCurrency } from '@/utils';
 import dayjs from 'dayjs';
 
 const QueuePage: React.FC = () => {
   const {
     queue,
-    currentCalling,
+    examRooms,
+    examItems,
     getWaitingCount,
     getFastingCount,
     getVipCount,
     getUrgentCount,
-    callNext,
-    completeCurrent,
+    getIdleRooms,
+    getBusyRooms,
+    getWaitingByExamItem,
+    callNextForRoom,
+    completeExam,
     skipCurrent,
     addToQueue,
     patients,
-    examItems
+    getCurrentMonthTotal
   } = useQueueStore();
 
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
 
   const waitingQueue = sortQueueByPriority(
-    queue.filter(item => item.status === 'waiting' || item.status === 'calling')
+    queue.filter(item => item.status === 'waiting')
   );
 
-  const handleCallNext = () => {
-    callNext();
-    Taro.showToast({ title: '已叫号', icon: 'success' });
+  const busyRooms = getBusyRooms();
+  const idleRooms = getIdleRooms();
+
+  const handleCallForRoom = (roomId: string) => {
+    const room = examRooms.find(r => r.id === roomId);
+    const result = callNextForRoom(roomId);
+    if (result) {
+      Taro.showToast({
+        title: `叫号: ${result.patientName}`,
+        icon: 'success'
+      });
+    } else {
+      const waitingCount = getWaitingByExamItem(room?.examItemId || '').length;
+      Taro.showToast({
+        title: waitingCount > 0 ? '检查室忙碌中' : '该项目无等待者',
+        icon: 'none'
+      });
+    }
   };
 
-  const handleComplete = () => {
-    completeCurrent();
-    Taro.showToast({ title: '已完成', icon: 'success' });
+  const handleComplete = (roomId: string) => {
+    const room = examRooms.find(r => r.id === roomId);
+    completeExam(roomId);
+    Taro.showToast({
+      title: `${room?.name} 已完成`,
+      icon: 'success'
+    });
   };
 
-  const handleSkip = () => {
-    skipCurrent();
+  const handleSkip = (roomId: string) => {
+    skipCurrent(roomId);
     Taro.showToast({ title: '已跳过', icon: 'none' });
   };
 
@@ -65,15 +89,14 @@ const QueuePage: React.FC = () => {
     setTimeout(() => {
       setRefreshing(false);
       Taro.stopPullDownRefresh();
-    }, 1000);
+    }, 800);
   };
 
-  React.useEffect(() => {
-    Taro.eventCenter.on('__taroPullDownRefresh', handlePullDownRefresh);
-    return () => {
-      Taro.eventCenter.off('__taroPullDownRefresh', handlePullDownRefresh);
-    };
-  }, []);
+  useEffect(() => {
+    if (idleRooms.length > 0 && !selectedRoomId) {
+      setSelectedRoomId(idleRooms[0].id);
+    }
+  }, [idleRooms, selectedRoomId]);
 
   const getLevelTagType = (level: string) => {
     switch (level) {
@@ -104,42 +127,6 @@ const QueuePage: React.FC = () => {
         <Text className={styles.headerSubtitle}>{dayjs().format('YYYY年MM月DD日 dddd')}</Text>
       </View>
 
-      <View className={styles.currentCalling}>
-        <Text className={styles.callingLabel}>当前叫号</Text>
-        {currentCalling ? (
-          <>
-            <View className={styles.callingPatient}>
-              <View className={styles.callingAvatar}>
-                <Text className={styles.callingAvatarText}>{currentCalling.patientName.charAt(0)}</Text>
-              </View>
-              <View className={styles.callingInfo}>
-                <Text className={styles.callingName}>{currentCalling.patientName}</Text>
-                <Text className={styles.callingItem}>{currentCalling.examItemName}</Text>
-              </View>
-            </View>
-            <View className={styles.callingTags}>
-              <StatusTag type={getLevelTagType(currentCalling.patientLevel)} text={getLevelText(currentCalling.patientLevel)} size="md" />
-              {currentCalling.examItemType === 'fasting' && (
-                <StatusTag type="fasting" text="空腹项目" size="md" />
-              )}
-              <StatusTag type="calling" text="叫号中" size="md" />
-            </View>
-            <View className={styles.callingActions}>
-              <Button className={classNames(styles.actionBtn, styles.success)} onClick={handleComplete}>
-                完成检查
-              </Button>
-              <Button className={classNames(styles.actionBtn, styles.warning)} onClick={handleSkip}>
-                跳过
-              </Button>
-            </View>
-          </>
-        ) : (
-          <View style={{ textAlign: 'center', padding: '40rpx 0' }}>
-            <Text style={{ fontSize: '28rpx', color: '#86909c' }}>暂无叫号</Text>
-          </View>
-        )}
-      </View>
-
       <View className={styles.statsSection}>
         <View className={styles.statItem}>
           <Text className={classNames(styles.statValue, styles.primary)}>{getWaitingCount()}</Text>
@@ -159,18 +146,108 @@ const QueuePage: React.FC = () => {
         </View>
       </View>
 
-      <View className={styles.queueSection}>
+      <View className={styles.section}>
         <View className={styles.sectionHeader}>
-          <Text className={styles.sectionTitle}>排队列表</Text>
-          <Text className={styles.sectionCount}>共 {getWaitingCount()} 人等待</Text>
+          <Text className={styles.sectionTitle}>检查室状态</Text>
+          <Text className={styles.sectionSubtitle}>
+            空闲 {idleRooms.length} / 忙碌 {busyRooms.length}
+          </Text>
         </View>
 
-        {waitingQueue.filter(item => item.status === 'waiting').length > 0 ? (
-          waitingQueue
-            .filter(item => item.status === 'waiting')
-            .map((item, index) => (
-              <QueueCard key={item.id} item={item} rank={index + 1} />
-            ))
+        <View className={styles.roomGrid}>
+          {examRooms.map(room => {
+            const isBusy = room.status === 'busy';
+            const waitingCount = getWaitingByExamItem(room.examItemId).length;
+
+            return (
+              <View
+                key={room.id}
+                className={classNames(styles.roomCard, isBusy && styles.roomBusy)}
+              >
+                <View className={styles.roomHeader}>
+                  <Text className={styles.roomName}>{room.name}</Text>
+                  <StatusTag
+                    type={isBusy ? 'calling' : 'completed'}
+                    text={isBusy ? '检查中' : '空闲'}
+                    size="sm"
+                  />
+                </View>
+
+                <View className={styles.roomItem}>
+                  <Text className={styles.roomItemLabel}>检查项目</Text>
+                  <Text className={styles.roomItemValue}>
+                    {examItems.find(e => e.id === room.examItemId)?.name}
+                  </Text>
+                </View>
+
+                {isBusy && room.currentPatientName ? (
+                  <View className={styles.roomPatient}>
+                    <View className={styles.roomPatientAvatar}>
+                      <Text className={styles.roomPatientAvatarText}>
+                        {room.currentPatientName.charAt(0)}
+                      </Text>
+                    </View>
+                    <View className={styles.roomPatientInfo}>
+                      <Text className={styles.roomPatientName}>{room.currentPatientName}</Text>
+                      <Text className={styles.roomPatientStatus}>正在检查中...</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View className={styles.roomPatient}>
+                    <View className={classNames(styles.roomPatientAvatar, styles.roomPatientAvatarIdle)}>
+                      <Text className={styles.roomPatientAvatarText}>空</Text>
+                    </View>
+                    <View className={styles.roomPatientInfo}>
+                      <Text className={styles.roomPatientIdleText}>等待叫号</Text>
+                      <Text className={styles.roomPatientIdleSub}>
+                        等待 {waitingCount} 人
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                <View className={styles.roomActions}>
+                  {isBusy ? (
+                    <>
+                      <Button
+                        className={classNames(styles.roomBtn, styles.roomBtnSuccess)}
+                        onClick={() => handleComplete(room.id)}
+                      >
+                        完成
+                      </Button>
+                      <Button
+                        className={classNames(styles.roomBtn, styles.roomBtnOutline)}
+                        onClick={() => handleSkip(room.id)}
+                      >
+                        跳过
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      className={classNames(styles.roomBtn, styles.roomBtnPrimary)}
+                      onClick={() => handleCallForRoom(room.id)}
+                      disabled={waitingCount === 0}
+                    >
+                      {waitingCount > 0 ? '叫下一位' : '暂无等待'}
+                    </Button>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      <View className={styles.section}>
+        <View className={styles.sectionHeader}>
+          <Text className={styles.sectionTitle}>全部等待队列</Text>
+          <Text className={styles.sectionCount}>共 {getWaitingCount()} 人</Text>
+        </View>
+
+        {waitingQueue.length > 0 ? (
+          waitingQueue.map((item, index) => (
+            <QueueCard key={item.id} item={item} rank={index + 1} />
+          ))
         ) : (
           <View className={styles.emptyState}>
             <Text className={styles.emptyText}>暂无等待人员</Text>
@@ -183,13 +260,6 @@ const QueuePage: React.FC = () => {
       <View className={styles.bottomActions}>
         <Button className={styles.takeNumberBtn} onClick={handleTakeNumber}>
           取号排队
-        </Button>
-        <Button
-          className={classNames(styles.actionBtn, styles.primary)}
-          style={{ flex: 'none', width: '200rpx' }}
-          onClick={handleCallNext}
-        >
-          下一位
         </Button>
       </View>
     </ScrollView>

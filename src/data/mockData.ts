@@ -1,5 +1,23 @@
 import type { ExamItem, Patient, QueueItem, QuotaRecord, PackageQuota, ExamRoom } from '@/types';
 
+const getTodayStr = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
+
+const getCurrentPeriod = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+};
+
+const makeTimestamp = (dateStr: string, timeStr: string): number => {
+  return new Date(`${dateStr}T${timeStr}:00`).getTime();
+};
+
+const today = getTodayStr();
+const period = getCurrentPeriod();
+
 export const examItems: ExamItem[] = [
   { id: 'item1', name: '血常规', type: 'non-fasting', duration: 10, price: 30 },
   { id: 'item2', name: '肝功能', type: 'fasting', duration: 15, price: 80 },
@@ -228,30 +246,30 @@ export const initialQueue: QueueItem[] = [
 ];
 
 export const quotaRecords: QuotaRecord[] = [
-  { id: 'r1', patientId: 'p1', patientName: '张明', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r2', patientId: 'p1', patientName: '张明', examItemId: 'item6', examItemName: '心电图', amount: 40, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r3', patientId: 'p2', patientName: '李娜', examItemId: 'item3', examItemName: '肾功能', amount: 60, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r4', patientId: 'p2', patientName: '李娜', examItemId: 'item5', examItemName: '血糖', amount: 10, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r5', patientId: 'p3', patientName: '王强', examItemId: 'item7', examItemName: '胸片', amount: 60, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r6', patientId: 'p4', patientName: '赵丽', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: '2024-01-14', period: '2024-01' },
-  { id: 'r7', patientId: 'p4', patientName: '赵丽', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: '2024-01-14', period: '2024-01' },
-  { id: 'r8', patientId: 'p4', patientName: '赵丽', examItemId: 'item3', examItemName: '肾功能', amount: 60, paymentType: 'package', date: '2024-01-14', period: '2024-01' },
-  { id: 'r9', patientId: 'p4', patientName: '赵丽', examItemId: 'item6', examItemName: '心电图', amount: 40, paymentType: 'package', date: '2024-01-14', period: '2024-01' },
-  { id: 'r10', patientId: 'p4', patientName: '赵丽', examItemId: 'item7', examItemName: '胸片', amount: 60, paymentType: 'package', date: '2024-01-14', period: '2024-01' },
-  { id: 'r11', patientId: 'p7', patientName: '孙磊', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r12', patientId: 'p7', patientName: '孙磊', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r13', patientId: 'p7', patientName: '孙磊', examItemId: 'item3', examItemName: '肾功能', amount: 60, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r14', patientId: 'p7', patientName: '孙磊', examItemId: 'item4', examItemName: '血脂', amount: 50, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r15', patientId: 'p7', patientName: '孙磊', examItemId: 'item6', examItemName: '心电图', amount: 40, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r16', patientId: 'p7', patientName: '孙磊', examItemId: 'item7', examItemName: '胸片', amount: 60, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r17', patientId: 'p7', patientName: '孙磊', examItemId: 'item8', examItemName: '腹部B超', amount: 120, paymentType: 'package', date: '2024-01-13', period: '2024-01' },
-  { id: 'r18', patientId: 'p7', patientName: '孙磊', examItemId: 'item5', examItemName: '血糖', amount: 10, paymentType: 'self-pay', date: '2024-01-14', period: '2024-01' },
-  { id: 'r19', patientId: 'p5', patientName: '刘伟', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r20', patientId: 'p5', patientName: '刘伟', examItemId: 'item4', examItemName: '血脂', amount: 50, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r21', patientId: 'p5', patientName: '刘伟', examItemId: 'item8', examItemName: '腹部B超', amount: 120, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r22', patientId: 'p6', patientName: '陈芳', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r23', patientId: 'p8', patientName: '周静', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: '2024-01-15', period: '2024-01' },
-  { id: 'r24', patientId: 'p8', patientName: '周静', examItemId: 'item5', examItemName: '血糖', amount: 10, paymentType: 'package', date: '2024-01-15', period: '2024-01' }
+  { id: 'r1', patientId: 'p1', patientName: '张明', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: today, time: '08:10', period, timestamp: makeTimestamp(today, '08:10') },
+  { id: 'r2', patientId: 'p1', patientName: '张明', examItemId: 'item6', examItemName: '心电图', amount: 40, paymentType: 'package', date: today, time: '08:25', period, timestamp: makeTimestamp(today, '08:25') },
+  { id: 'r3', patientId: 'p2', patientName: '李娜', examItemId: 'item3', examItemName: '肾功能', amount: 60, paymentType: 'package', date: today, time: '08:15', period, timestamp: makeTimestamp(today, '08:15') },
+  { id: 'r4', patientId: 'p2', patientName: '李娜', examItemId: 'item5', examItemName: '血糖', amount: 10, paymentType: 'package', date: today, time: '08:30', period, timestamp: makeTimestamp(today, '08:30') },
+  { id: 'r5', patientId: 'p3', patientName: '王强', examItemId: 'item7', examItemName: '胸片', amount: 60, paymentType: 'package', date: today, time: '08:20', period, timestamp: makeTimestamp(today, '08:20') },
+  { id: 'r6', patientId: 'p4', patientName: '赵丽', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: today, time: '07:50', period, timestamp: makeTimestamp(today, '07:50') },
+  { id: 'r7', patientId: 'p4', patientName: '赵丽', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: today, time: '08:00', period, timestamp: makeTimestamp(today, '08:00') },
+  { id: 'r8', patientId: 'p4', patientName: '赵丽', examItemId: 'item3', examItemName: '肾功能', amount: 60, paymentType: 'package', date: today, time: '08:15', period, timestamp: makeTimestamp(today, '08:15') },
+  { id: 'r9', patientId: 'p4', patientName: '赵丽', examItemId: 'item6', examItemName: '心电图', amount: 40, paymentType: 'package', date: today, time: '08:35', period, timestamp: makeTimestamp(today, '08:35') },
+  { id: 'r10', patientId: 'p4', patientName: '赵丽', examItemId: 'item7', examItemName: '胸片', amount: 60, paymentType: 'package', date: today, time: '08:45', period, timestamp: makeTimestamp(today, '08:45') },
+  { id: 'r11', patientId: 'p7', patientName: '孙磊', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: today, time: '07:30', period, timestamp: makeTimestamp(today, '07:30') },
+  { id: 'r12', patientId: 'p7', patientName: '孙磊', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: today, time: '07:45', period, timestamp: makeTimestamp(today, '07:45') },
+  { id: 'r13', patientId: 'p7', patientName: '孙磊', examItemId: 'item3', examItemName: '肾功能', amount: 60, paymentType: 'package', date: today, time: '08:00', period, timestamp: makeTimestamp(today, '08:00') },
+  { id: 'r14', patientId: 'p7', patientName: '孙磊', examItemId: 'item4', examItemName: '血脂', amount: 50, paymentType: 'package', date: today, time: '08:15', period, timestamp: makeTimestamp(today, '08:15') },
+  { id: 'r15', patientId: 'p7', patientName: '孙磊', examItemId: 'item6', examItemName: '心电图', amount: 40, paymentType: 'package', date: today, time: '08:30', period, timestamp: makeTimestamp(today, '08:30') },
+  { id: 'r16', patientId: 'p7', patientName: '孙磊', examItemId: 'item7', examItemName: '胸片', amount: 60, paymentType: 'package', date: today, time: '08:45', period, timestamp: makeTimestamp(today, '08:45') },
+  { id: 'r17', patientId: 'p7', patientName: '孙磊', examItemId: 'item8', examItemName: '腹部B超', amount: 120, paymentType: 'package', date: today, time: '09:00', period, timestamp: makeTimestamp(today, '09:00') },
+  { id: 'r18', patientId: 'p7', patientName: '孙磊', examItemId: 'item5', examItemName: '血糖', amount: 10, paymentType: 'self-pay', date: today, time: '09:15', period, timestamp: makeTimestamp(today, '09:15') },
+  { id: 'r19', patientId: 'p5', patientName: '刘伟', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: today, time: '08:05', period, timestamp: makeTimestamp(today, '08:05') },
+  { id: 'r20', patientId: 'p5', patientName: '刘伟', examItemId: 'item4', examItemName: '血脂', amount: 50, paymentType: 'package', date: today, time: '08:20', period, timestamp: makeTimestamp(today, '08:20') },
+  { id: 'r21', patientId: 'p5', patientName: '刘伟', examItemId: 'item8', examItemName: '腹部B超', amount: 120, paymentType: 'package', date: today, time: '08:40', period, timestamp: makeTimestamp(today, '08:40') },
+  { id: 'r22', patientId: 'p6', patientName: '陈芳', examItemId: 'item1', examItemName: '血常规', amount: 30, paymentType: 'package', date: today, time: '08:10', period, timestamp: makeTimestamp(today, '08:10') },
+  { id: 'r23', patientId: 'p8', patientName: '周静', examItemId: 'item2', examItemName: '肝功能', amount: 80, paymentType: 'package', date: today, time: '08:05', period, timestamp: makeTimestamp(today, '08:05') },
+  { id: 'r24', patientId: 'p8', patientName: '周静', examItemId: 'item5', examItemName: '血糖', amount: 10, paymentType: 'package', date: today, time: '08:25', period, timestamp: makeTimestamp(today, '08:25') }
 ];
 
 export const packageQuotas: PackageQuota[] = [
